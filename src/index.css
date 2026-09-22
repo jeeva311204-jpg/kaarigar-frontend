@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-paper-50: #FDFBF7;
+    --color-paper-100: #F9F5EC;
+    --color-paper-200: #F4EFE6;
+    --color-paper-300: #E8DEC8;
+    --color-indigo-900: #16233B;
+    --color-terracotta-500: #C25E3E;
+    --color-turmeric-500: #D97706;
+  }
+
+  body {
+    background-color: #FDFBF7;
+    color: #16233B;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* Subtle hand-made paper texture layer */
+.bg-paper-texture {
+  background-color: #FDFBF7;
+  background-image: radial-gradient(#E8DEC8 0.75px, transparent 0.75px), radial-gradient(#E8DEC8 0.75px, #FDFBF7 0.75px);
+  background-size: 30px 30px;
+  background-position: 0 0, 15px 15px;
+}
+
+.bg-craft-card {
+  background: #F4EFE6;
+  border: 1px solid #E8DEC8;
+}
+
+/* Accessible minimum tap target: 48px for mobile users with low digital literacy */
+.tap-target-accessible {
+  min-height: 48px;
+  min-width: 48px;
+}
+
+/* Custom craft scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4EFE6;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8CAA8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C25E3E;
+}
+
+/* Shimmer animation for AI processing */
+@keyframes craft-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+.animate-craft-pulse {
+  animation: craft-pulse 2.5s infinite ease-in-out;
+}
+
+/* Waveform glow animation */
+@keyframes wave-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(194, 94, 62, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(194, 94, 62, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(194, 94, 62, 0);
+  }
+}
+
+.animate-recording-ring {
+  animation: wave-glow 1.8s infinite;
+}

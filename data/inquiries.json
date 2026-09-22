@@ -1,0 +1,17 @@
+[
+  {
+    "id": "inq-demo-1",
+    "productId": "prod-surahi-01",
+    "productTitle": "Jaipur Blue Pottery Floral Surahi",
+    "productImage": "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=800&q=80",
+    "artisanId": "artisan-ramswaroop",
+    "buyerName": "Pooja Singhania",
+    "buyerPhone": "+91 98201 98765",
+    "buyerEmail": "pooja.s@craftdecor.in",
+    "channel": "chat",
+    "message": "Namaste Ramswaroop ji, I would like to order 5 pieces for our Bangalore home studio. Are these food and water safe?",
+    "status": "new",
+    "createdAt": "2026-09-22T18:23:57.850Z",
+    "replies": []
+  }
+]
