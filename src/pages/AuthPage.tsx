@@ -1,195 +1,180 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth, defaultProfiles } from '../context/AuthContext';
 import { useTranslation } from '../i18n';
 import { useToast } from '../context/ToastContext';
 import { UserRole } from '../types';
-import { Button } from '../components/common/Button';
-import { Phone, ShieldCheck, Sparkles, User, Store } from 'lucide-react';
+import { 
+  User, 
+  Store, 
+  Shield, 
+  ArrowRight, 
+  Sparkles, 
+  ShieldCheck, 
+  Mic, 
+  ShoppingBag, 
+  BarChart3 
+} from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
-  const { role, setRole, loginWithPhone } = useAuth();
+  const { setRole, loginWithPhone } = useAuth();
   const { t, isHindi } = useTranslation();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [phone, setPhone] = useState('9829044211');
-  const [otp, setOtp] = useState('1234');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSendOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (phone.length < 10) {
-      showToast({
-        type: 'error',
-        title: 'Invalid Phone Number',
-        message: 'Please enter a valid 10-digit mobile number.'
-      });
-      return;
-    }
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep('otp');
-      showToast({
-        type: 'info',
-        title: 'OTP Sent',
-        message: 'Enter demo code 1234 to proceed.'
-      });
-    }, 600);
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const success = await loginWithPhone(phone, otp);
-    setIsLoading(false);
-
+  const handleQuickDemo = async (targetRole: UserRole) => {
+    const demoNumber = defaultProfiles[targetRole].phone.replace(/\D/g, '').slice(-10);
+    const success = await loginWithPhone(demoNumber, '1234', targetRole);
     if (success) {
       showToast({
         type: 'success',
-        title: isHindi ? 'सफलतापूर्वक लॉग इन' : 'Authentication Successful',
-        message: isHindi ? 'कारीगर कार्यशाला में आपका स्वागत है!' : 'Welcome to your Kaarigar workspace!'
+        title: isHindi ? 'डेमो सत्र सक्रिय' : 'Demo Session Active',
+        message: `${defaultProfiles[targetRole].name} (${targetRole.toUpperCase()})`
       });
-      navigate(role === 'artisan' ? '/' : '/marketplace');
-    } else {
-      showToast({
-        type: 'error',
-        title: 'Invalid OTP',
-        message: 'Please enter a valid OTP code (e.g. 1234).'
-      });
+      if (targetRole === 'admin') navigate('/admin');
+      else if (targetRole === 'buyer') navigate('/marketplace');
+      else navigate('/');
     }
   };
 
+  const portals = [
+    {
+      role: 'artisan' as UserRole,
+      title: isHindi ? 'उस्ताद कारीगर' : 'Master Artisan',
+      titleHi: 'कारीगर प्रवेश द्वार',
+      desc: isHindi 
+        ? 'आवाज़ से उत्पाद सूचीबद्ध करें, एआई से उचित मूल्य प्राप्त करें और सीधे ग्राहकों से जुड़ें' 
+        : 'Voice-first craft cataloging, AI fair market valuation, and direct patron connections across India',
+      path: '/login/artisan',
+      themeBorder: 'border-terracotta-300 hover:border-terracotta-500',
+      badgeBg: 'bg-terracotta-50 text-terracotta-800 border-terracotta-200',
+      iconBg: 'bg-terracotta-600 text-white',
+      btnBg: 'bg-terracotta-600 hover:bg-terracotta-700 text-white',
+      icon: <User className="w-6 h-6" />,
+      feature: isHindi ? 'आवाज़ आधारित कैटलॉगिंग' : 'Voice-First AI Studio',
+      demoUser: defaultProfiles.artisan
+    },
+    {
+      role: 'buyer' as UserRole,
+      title: isHindi ? 'शिल्प कद्रदान / खरीदार' : 'Buyer / Patron',
+      titleHi: 'खरीदार प्रवेश द्वार',
+      desc: isHindi 
+        ? 'प्रमाणित जीआई शिल्प खोजें, कारीगरों की सच्ची कहानियां जानें और सीधा आर्डर दें' 
+        : 'Discover authentic GI certified handicrafts, generational artisan heritage stories & direct craft orders',
+      path: '/login/buyer',
+      themeBorder: 'border-emerald-300 hover:border-emerald-500',
+      badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      iconBg: 'bg-emerald-700 text-white',
+      btnBg: 'bg-emerald-700 hover:bg-emerald-800 text-white',
+      icon: <Store className="w-6 h-6" />,
+      feature: isHindi ? 'पारदर्शी उचित मूल्य' : 'Direct GI Linkage',
+      demoUser: defaultProfiles.buyer
+    },
+    {
+      role: 'admin' as UserRole,
+      title: isHindi ? 'क्लस्टर प्रशासक' : 'Cluster Admin',
+      titleHi: 'प्रशासक प्रवेश द्वार',
+      desc: isHindi 
+        ? 'स्वयं सहायता समूह (SHG) व क्लस्टर कारीगर निर्देशिका, कैटलॉग सत्यापन और विश्लेषण' 
+        : 'SHG cluster governance, artisan directory management, catalog moderation & market analytics',
+      path: '/login/admin',
+      themeBorder: 'border-indigo-300 hover:border-indigo-600',
+      badgeBg: 'bg-indigo-50 text-indigo-900 border-indigo-200',
+      iconBg: 'bg-indigo-950 text-terracotta-400',
+      btnBg: 'bg-indigo-950 hover:bg-indigo-900 text-white',
+      icon: <Shield className="w-6 h-6" />,
+      feature: isHindi ? 'क्लस्टर निगरानी' : 'Cluster Oversight',
+      demoUser: defaultProfiles.admin
+    }
+  ];
+
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-10">
-      <div className="bg-paper-100 rounded-3xl border border-paper-300 shadow-craft-lg max-w-md w-full p-6 sm:p-8">
-        
-        {/* Header Branding */}
-        <div className="text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-900 border border-indigo-950 flex items-center justify-center mx-auto mb-3 text-terracotta-400 font-serif font-bold text-2xl shadow-craft">
-            क
-          </div>
-          <h2 className="font-serif text-2xl font-bold text-indigo-950">
-            {t('common.appName')}
-          </h2>
-          <p className="text-xs text-stone-600 mt-1">
-            {isHindi ? 'कारीगरों और कद्रदानों के लिए सरल डिजिटल प्रवेश' : 'Voice-first market linkage for Indian artisans & patrons'}
-          </p>
+    <div className="min-h-[85vh] max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+      
+      {/* Header Branding */}
+      <div className="text-center space-y-2 max-w-xl mx-auto">
+        <div className="w-14 h-14 rounded-2xl bg-indigo-900 border border-indigo-950 flex items-center justify-center mx-auto mb-2 text-terracotta-400 font-serif font-bold text-2xl shadow-craft">
+          क
         </div>
-
-        {/* Role Toggle Selector */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-paper-200 rounded-2xl mb-6 border border-paper-300">
-          <button
-            type="button"
-            onClick={() => setRole('artisan')}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              role === 'artisan'
-                ? 'bg-indigo-900 text-white shadow-xs'
-                : 'text-stone-600 hover:text-indigo-950'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            <span>{isHindi ? 'कारीगर (Artisan)' : 'Master Artisan'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setRole('buyer')}
-            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-              role === 'buyer'
-                ? 'bg-indigo-900 text-white shadow-xs'
-                : 'text-stone-600 hover:text-indigo-950'
-            }`}
-          >
-            <Store className="w-4 h-4" />
-            <span>{isHindi ? 'खरीदार (Buyer)' : 'Buyer / Patron'}</span>
-          </button>
-        </div>
-
-        {/* Auth Forms */}
-        {step === 'phone' ? (
-          <form onSubmit={handleSendOtp} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-indigo-950 mb-1">
-                {isHindi ? 'मोबाइल नंबर (Mobile Number)' : 'Mobile Phone Number'}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-sm text-stone-500 font-semibold">
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                  placeholder="98290 44211"
-                  maxLength={10}
-                  className="w-full pl-14 pr-4 py-3 rounded-xl border border-paper-300 bg-paper-50 font-mono text-base focus:outline-none focus:ring-2 focus:ring-terracotta-400"
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              isLoading={isLoading}
-              className="w-full font-bold"
-            >
-              {isHindi ? 'ओटीपी (OTP) प्राप्त करें' : 'Send One-Time Passcode'}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-bold text-indigo-950">
-                  {isHindi ? '4-अंकीय ओटीपी दर्ज करें' : 'Enter 4-Digit Passcode'}
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setStep('phone')}
-                  className="text-xs text-terracotta-600 hover:underline"
-                >
-                  {isHindi ? 'नंबर बदलें' : 'Change number'}
-                </button>
-              </div>
-
-              <input
-                type="text"
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="1234"
-                maxLength={6}
-                className="w-full px-4 py-3 rounded-xl border border-paper-300 bg-paper-50 font-mono text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-terracotta-400"
-              />
-              <p className="text-[11px] text-stone-500 text-center mt-1">
-                {isHindi ? 'डेमो कोड: 1234' : 'Demo Passcode: 1234'}
-              </p>
-            </div>
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              isLoading={isLoading}
-              className="w-full font-bold"
-            >
-              {isHindi ? 'सत्यापित करें और प्रवेश करें' : 'Verify & Continue'}
-            </Button>
-          </form>
-        )}
-
-        {/* Trust Footer */}
-        <div className="mt-6 pt-4 border-t border-paper-300 flex items-center justify-center gap-2 text-xs text-stone-500">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>{isHindi ? 'सुरक्षित एवं निःशुल्क कारीगर सहायता' : 'CivicSync Certified Artisan Security'}</span>
-        </div>
-
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-indigo-950">
+          {t('common.appName')} • {isHindi ? 'प्रवेश पोर्टल' : 'Authentication Portals'}
+        </h1>
+        <p className="text-xs sm:text-sm text-stone-600">
+          {isHindi 
+            ? 'अपनी भूमिका चुनें और अपने समर्पित मोबाइल लॉगिन पृष्ठ पर जाएं' 
+            : 'Select your role to access your dedicated mobile phone login page'}
+        </p>
       </div>
+
+      {/* 3 Separate Portal Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {portals.map((portal) => (
+          <div
+            key={portal.role}
+            className={`bg-paper-100 rounded-3xl border ${portal.themeBorder} p-6 shadow-craft hover:shadow-craft-lg transition-all flex flex-col justify-between space-y-5`}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className={`w-12 h-12 rounded-2xl ${portal.iconBg} flex items-center justify-center shadow-xs`}>
+                  {portal.icon}
+                </div>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${portal.badgeBg}`}>
+                  {portal.feature}
+                </span>
+              </div>
+
+              <div>
+                <h2 className="font-serif text-xl font-bold text-indigo-950">
+                  {portal.title}
+                </h2>
+                <div className="text-xs font-semibold text-terracotta-700 mt-0.5">
+                  {portal.titleHi}
+                </div>
+                <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                  {portal.desc}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-paper-200">
+              <Link
+                to={portal.path}
+                className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold ${portal.btnBg} transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer`}
+              >
+                <span>{isHindi ? 'लॉगिन पृष्ठ पर जाएं' : `Sign In as ${portal.title.split(' ')[0]}`}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => handleQuickDemo(portal.role)}
+                className="w-full py-1.5 px-3 rounded-lg text-[11px] font-semibold text-stone-600 hover:text-indigo-950 hover:bg-paper-200/80 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3 text-terracotta-600" />
+                <span>{isHindi ? '1-क्लिक त्वरित डेमो' : '1-Click Quick Demo'}</span>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Security Trust Note */}
+      <div className="bg-paper-100/70 border border-paper-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-600">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>
+            {isHindi 
+              ? 'राष्ट्रीय हस्तशिल्प मिशन (SIH26090) समर्थित सुरक्षित मोबाइल ओटीपी प्रमाणीकरण' 
+              : 'Secure Indian Mobile OTP authentication certified under CivicSync (SIH26090)'}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-[11px] font-semibold text-terracotta-700">
+          <span>+91 SMS Gateway</span>
+          <span>•</span>
+          <span>100% Free for Artisans</span>
+        </div>
+      </div>
+
     </div>
   );
 };

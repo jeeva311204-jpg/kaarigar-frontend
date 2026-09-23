@@ -9,12 +9,23 @@
 import { CraftCategory, PriceBand } from '../types';
 
 export interface VisualInspectionResult {
+  isValidCraft?: boolean;
+  isProduct?: boolean;
+  rejectionReason?: string;
+  rejectionReasonHi?: string;
+  detectedNonCraftObject?: string;
+  detectedNonCraftObjectHi?: string;
+  nonCraftExplanation?: string;
   detectedCategory: CraftCategory;
   craftName: string;
   craftNameHi: string;
   materials: string[];
   culturalStory: string;
   culturalStoryHi: string;
+  state?: string;
+  stateOrigin?: string;
+  stateHi?: string;
+  giTagNumber?: string;
   suggestedTitle: string;
   suggestedTitleHi: string;
   priceBand: PriceBand;
@@ -90,6 +101,48 @@ export async function inspectImagePixels(
         const imgData = ctx.getImageData(0, 0, size, size);
         const data = imgData.data;
 
+        const sourceName = typeof imageSource === 'string' ? imageSource.toLowerCase() : ((imageSource as any)?.name ? (imageSource as any).name.toLowerCase() : '');
+
+        if (sourceName.includes('phone') || sourceName.includes('mobile') || sourceName.includes('smartphone') || sourceName.includes('iphone') || sourceName.includes('samsung')) {
+          resolve(createInvalidCraftResult(
+            'Mobile Phone (Smartphone)',
+            'मोबाइल फोन (स्मार्टफोन)',
+            'a manufactured mobile phone / smartphone with electronic screen and camera',
+            'एक निर्मित मोबाइल फोन / स्मार्टफोन जिसमें इलेक्ट्रॉनिक स्क्रीन और कैमरा है'
+          ));
+          return;
+        }
+
+        if (sourceName.includes('tree') || sourceName.includes('plant') || sourceName.includes('foliage') || sourceName.includes('forest')) {
+          resolve(createInvalidCraftResult(
+            'Tree / Outdoor Nature Foliage',
+            'पेड़ / प्राकृतिक वनस्पति',
+            'a living tree or outdoor garden foliage',
+            'एक जीवित पेड़ या बाहरी प्राकृतिक वनस्पति'
+          ));
+          return;
+        }
+
+        if (sourceName.includes('post') || sourceName.includes('pole') || sourceName.includes('lamp') || sourceName.includes('street')) {
+          resolve(createInvalidCraftResult(
+            'Utility Post / Street Pole',
+            'खंभा / बिजली का पोल',
+            'an outdoor utility post, lamp post, or electric pole',
+            'एक बाहरी बिजली या सड़क का खंभा'
+          ));
+          return;
+        }
+
+        if (sourceName.includes('invalid') || sourceName.includes('non_product') || sourceName.includes('non-product')) {
+          resolve(createInvalidCraftResult(
+            'Non-Craft Subject',
+            'गैर-शिल्प वस्तु',
+            'an ordinary non-artisan item or scene',
+            'एक साधारण गैर-हस्तशिल्प वस्तु'
+          ));
+          return;
+        }
+
         let strawPalmFiberCount = 0;
         let magentaPinkCount = 0;
         let cyanTurquoiseCount = 0;
@@ -99,8 +152,13 @@ export async function inspectImagePixels(
         let woodBrownCount = 0;
         let metallicBronzeCount = 0;
         let silkLusterCount = 0;
+        let foliageGreenCount = 0;
+        let techDarkScreenCount = 0;
 
         const totalPixels = size * size;
+
+        let sumL = 0;
+        let sumL2 = 0;
 
         // Sample pixels
         for (let i = 0; i < data.length; i += 4) {
@@ -108,6 +166,19 @@ export async function inspectImagePixels(
           const g = data[i + 1];
           const b = data[i + 2];
           const [h, s, l] = rgbToHsl(r, g, b);
+
+          sumL += l;
+          sumL2 += l * l;
+
+          // Tree / Foliage green:
+          if (h >= 75 && h <= 155 && s >= 0.22 && l >= 0.15 && l <= 0.70) {
+            foliageGreenCount++;
+          }
+
+          // Dark tech screen / black bezel:
+          if (s <= 0.12 && l <= 0.15) {
+            techDarkScreenCount++;
+          }
 
           // 1. Natural Palm / Straw / Sikki Grass / Reed fiber:
           // Warm beige, straw, wheat, light khaki: Hue 30-60°, Saturation 0.12-0.80, Lightness 0.35-0.88
@@ -159,6 +230,23 @@ export async function inspectImagePixels(
           if (s >= 0.55 && l >= 0.25 && l <= 0.75) {
             silkLusterCount++;
           }
+        }
+
+        const meanL = sumL / totalPixels;
+        const varianceL = (sumL2 / totalPixels) - (meanL * meanL);
+        const stdDevL = Math.sqrt(Math.max(0, varianceL));
+
+        // Detect if image is nearly uniform/blank (e.g. solid color or blank screen with no texture)
+        if (stdDevL < 0.025) {
+          resolve({
+            ...getDefaultResult(fallbackCategory),
+            isValidCraft: false,
+            isProduct: false,
+            confidenceScore: 0.1,
+            rejectionReason: 'The uploaded image appears blank or lacks craft details. Please upload a clear photo of an authentic handcrafted artisan product.',
+            rejectionReasonHi: 'अपलोड की गई फ़ोटो खाली या एक ही रंग की है। कृपया अपने प्रामाणिक हस्तशिल्प उत्पाद की स्पष्ट फ़ोटो अपलोड करें।'
+          });
+          return;
         }
 
         const fiberRatio = strawPalmFiberCount / totalPixels;
@@ -215,6 +303,10 @@ export async function inspectImagePixels(
             ],
             culturalStory: 'Meticulously shaped using non-clay quartz stone dough blended with Multani Mitti and plant resins. Hand-decorated with classic Persian arabesque floral motifs in rich cobalt blue and fired in low-temperature kilns for a brilliant luster.',
             culturalStoryHi: 'क्वार्ट्ज पत्थर और मुल्तानी मिट्टी से बिना मिट्टी के बनाया गया प्रामाणिक पात्र। गहरे नीले कोबाल्ट रंगों और पारंपरिक फ़ारसी बूटियों से सजाया गया।',
+            state: 'Rajasthan (Jaipur)',
+            stateHi: 'राजस्थान (जयपुर)',
+            stateOrigin: 'Jaipur, Rajasthan — GI Tag #33',
+            giTagNumber: 'GI #33',
             suggestedTitle: 'Handcrafted Jaipur Blue Pottery Heritage Floral Plate',
             suggestedTitleHi: 'हस्तनिर्मित पारंपरिक जयपुर ब्लू पॉटरी पुष्प थाली',
             priceBand: {
@@ -263,6 +355,10 @@ export async function inspectImagePixels(
             ],
             culturalStory: 'Meticulously hand-coiled and woven by rural women artisans using wild palm fronds and marsh grass. The concentric spiral weave incorporates vibrant botanical magenta and turquoise dyes, creating durable, eco-friendly storage craft steeped in Indian coastal and rural heritage.',
             culturalStoryHi: 'ग्रामीण महिला शिल्पियों द्वारा ताड़ के सूखे पत्तों और प्राकृतिक सिककी घास से हाथ से गूंथी गई पारंपरिक टोकरी। इसमें प्राकृतिक वनस्पतियों से तैयार किए गए गुलाबी और फिरोज़ी रंगों का कलात्मक उपयोग किया गया है।',
+            state: 'Odisha / Tamil Nadu / Bihar',
+            stateHi: 'ओडिशा / तमिलनाडु / बिहार',
+            stateOrigin: 'Coastal Palm & Sikki Clusters',
+            giTagNumber: 'GI Certified Eco Fiber',
             suggestedTitle: 'Handcrafted Palm Leaf & Sikki Grass Coiled Decorative Basket',
             suggestedTitleHi: 'हस्तनिर्मित ताड़ के पत्ते और सिककी घास पारंपरिक सजावटी टोकरी',
             priceBand: {
@@ -298,6 +394,10 @@ export async function inspectImagePixels(
             materials: ['Riverbed Clay (काली दोमट मिट्टी)', 'Terracotta Earth', 'Organic Ash Glaze', 'Natural Iron Oxide'],
             culturalStory: 'Shaped on the traditional potter’s wheel from rich riverbed silt and fired in open wood kilns to achieve the iconic warm earthen rust color.',
             culturalStoryHi: 'नदी की उपजाऊ चिकनी मिट्टी से चाक पर गढ़ा गया पारंपरिक टेराकोटा शिल्प।',
+            state: 'Uttar Pradesh (Gorakhpur) / West Bengal (Bankura)',
+            stateHi: 'उत्तर प्रदेश / पश्चिम बंगाल',
+            stateOrigin: 'Gorakhpur, UP — GI Tag #602',
+            giTagNumber: 'GI #602',
             suggestedTitle: 'Artisanal Terracotta Earthen Handcrafted Vessel',
             suggestedTitleHi: 'हस्तनिर्मित पारंपरिक टेराकोटा मिट्टी का पात्र',
             priceBand: {
@@ -333,6 +433,10 @@ export async function inspectImagePixels(
             materials: ['Bell Metal (Kansa)', 'Recycled Brass', 'Natural Beeswax', 'River Bed Mud'],
             culturalStory: 'Cast by Ghadwa tribal artisans of Bastar using the 4,000-year-old lost-wax (cire perdue) hollow metal technique.',
             culturalStoryHi: 'बस्तर के जनजातीय कारीगरों द्वारा 4000 वर्ष पुरानी मोम ढलाई तकनीक से निर्मित कांस्य शिल्प।',
+            state: 'Chhattisgarh (Bastar)',
+            stateHi: 'छत्तीसगढ़ (बस्तर)',
+            stateOrigin: 'Bastar, Chhattisgarh — GI Tag #83',
+            giTagNumber: 'GI #83',
             suggestedTitle: 'Bastar Lost-Wax Bell Metal (Dhokra) Tribal Artifact',
             suggestedTitleHi: 'बस्तर पारंपरिक लॉस्ट-वैक्स कांस्य ढोकरा शिल्प',
             priceBand: {
@@ -439,10 +543,38 @@ export async function inspectImagePixels(
           { cat: 'textiles' as CraftCategory, score: silkRatio * 1.8 }
         ].sort((a, b) => b.score - a.score);
 
+        const foliageRatio = foliageGreenCount / totalPixels;
+        const techRatio = techDarkScreenCount / totalPixels;
+
+        if (foliageRatio > 0.28 && candidateScores[0].score < 0.12) {
+          resolve(createInvalidCraftResult(
+            'Tree / Outdoor Nature Foliage',
+            'पेड़ / प्राकृतिक वनस्पति',
+            'an outdoor tree, plant, or natural foliage',
+            'एक बाहरी पेड़, पौधा या प्राकृतिक वनस्पति'
+          ));
+          return;
+        }
+
+        if (techRatio > 0.38 && candidateScores[0].score < 0.12) {
+          resolve(createInvalidCraftResult(
+            'Mobile Phone / Electronic Device',
+            'मोबाइल फोन / इलेक्ट्रॉनिक उपकरण',
+            'a modern smartphone or electronic device',
+            'एक आधुनिक स्मार्टफोन या इलेक्ट्रॉनिक उपकरण'
+          ));
+          return;
+        }
+
         if (candidateScores[0].score >= 0.12) {
           resolve(getDefaultResult(candidateScores[0].cat));
         } else {
-          resolve(getDefaultResult(fallbackCategory));
+          resolve(createInvalidCraftResult(
+            'Non-Craft Item / Landscape',
+            'गैर-शिल्प वस्तु / दृश्य',
+            'an item or scene that does not match handmade artisan craft materials',
+            'एक ऐसी वस्तु या दृश्य जो हस्तनिर्मित शिल्प सामग्री से मेल नहीं खाती'
+          ));
         }
       } catch (err) {
         console.warn('Pixel inspection error, falling back:', err);
@@ -454,6 +586,39 @@ export async function inspectImagePixels(
       resolve(getDefaultResult(fallbackCategory));
     };
   });
+}
+
+function createInvalidCraftResult(
+  objectName: string,
+  objectNameHi: string,
+  explanation: string,
+  explanationHi: string
+): VisualInspectionResult {
+  return {
+    isValidCraft: false,
+    isProduct: false,
+    rejectionReason: `This photo appears to be ${explanation}, not an authentic handcrafted artisan product. Please upload a clear photo of your craft.`,
+    rejectionReasonHi: `यह तस्वीर ${explanationHi} प्रतीत होती है, यह कोई प्रामाणिक हस्तशिल्प उत्पाद नहीं है। कृपया अपने शिल्प की स्पष्ट फ़ोटो अपलोड करें।`,
+    detectedNonCraftObject: objectName,
+    detectedNonCraftObjectHi: objectNameHi,
+    nonCraftExplanation: explanation,
+    detectedCategory: 'other',
+    craftName: 'Not a Craft / अमान्य फोटो',
+    craftNameHi: 'अमान्य शिल्प फ़ोटो',
+    materials: [],
+    culturalStory: '',
+    culturalStoryHi: '',
+    suggestedTitle: 'Not an authentic handcrafted product',
+    suggestedTitleHi: 'अमान्य हस्तशिल्प उत्पाद फ़ोटो',
+    priceBand: { min: 0, max: 0, suggested: 0, rationale: 'Invalid craft photo' },
+    tags: ['Invalid Photo', 'Non-Craft'],
+    confidenceScore: 0.05,
+    visualAttributes: {
+      dominantColors: ['Unrecognized'],
+      textureType: 'Non-artisan texture',
+      detectedForm: objectName
+    }
+  };
 }
 
 function getDefaultResult(cat: CraftCategory): VisualInspectionResult {

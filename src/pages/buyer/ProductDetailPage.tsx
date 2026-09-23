@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Product, InquiryChannel } from '../../types';
 import { useTranslation } from '../../i18n';
-import { fetchProductById } from '../../lib/firebase';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { fetchProductById, markProductAsSoldRecord, deleteProductRecord } from '../../lib/firebase';
 import { ContactModal } from '../../components/marketplace/ContactModal';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -19,12 +21,16 @@ import {
   Sparkles, 
   Check, 
   Volume2, 
-  User 
+  User,
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, isHindi } = useTranslation();
+  const { currentUser } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -63,13 +69,42 @@ export const ProductDetailPage: React.FC = () => {
   const description = isHindi && product.descriptionHi ? product.descriptionHi : product.description;
   const culturalStory = isHindi && product.culturalStoryHi ? product.culturalStoryHi : product.culturalStory;
 
+  const isOwner = Boolean(
+    currentUser && (currentUser.id === product.artisanId || currentUser.id === product.ownerId)
+  );
+
+  const handleMarkSold = async () => {
+    if (!product) return;
+    await markProductAsSoldRecord(product.id);
+    showToast({
+      type: 'success',
+      title: isHindi ? 'शिल्प बिक गया' : 'Marked as Sold',
+      message: isHindi ? 'उत्पाद को सफलतापूर्वक बिक गया चिह्नित किया गया।' : 'Craft marked as sold successfully!'
+    });
+    setProduct((prev) => prev ? { ...prev, status: 'sold', soldAt: new Date().toISOString() } : null);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!product) return;
+    if (!window.confirm(isHindi ? 'क्या आप इस शिल्प को सूची से हटाना चाहते हैं?' : 'Are you sure you want to delete this listing?')) {
+      return;
+    }
+    await deleteProductRecord(product.id);
+    showToast({
+      type: 'info',
+      title: isHindi ? 'शिल्प हटाया गया' : 'Craft Deleted',
+      message: isHindi ? 'उत्पाद सूची से हटा दिया गया।' : 'Product deleted from your catalog.'
+    });
+    navigate(-1);
+  };
+
   const handleOpenContactWithChannel = (channel: InquiryChannel) => {
     setContactChannel(channel);
     setIsContactOpen(true);
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-28 md:pb-14 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-28 md:pb-14 space-y-6">
       
       {/* Back Button & Category Trail */}
       <div className="flex items-center gap-3">
@@ -85,10 +120,52 @@ export const ProductDetailPage: React.FC = () => {
         </span>
       </div>
 
+      {/* Artisan Owner Quick Controls Banner */}
+      {isOwner && (
+        <div className="bg-indigo-950 text-white rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-craft border border-indigo-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-turmeric-500/20 border border-turmeric-400/30 flex items-center justify-center text-turmeric-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs sm:text-sm font-bold text-paper-50">
+                {isHindi ? 'आप इस शिल्प के निर्माता हैं (Artisan Controls)' : 'You are the craftsman of this listing (Artisan Controls)'}
+              </div>
+              <div className="text-[11px] text-stone-300">
+                {product.status === 'sold'
+                  ? (isHindi ? 'यह शिल्प बिक चुका है' : 'Status: Marked as Sold')
+                  : (isHindi ? 'स्थिति: लाइव बाज़ार में सक्रिय' : 'Status: Live in marketplace')}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {product.status === 'live' && (
+              <button
+                type="button"
+                onClick={handleMarkSold}
+                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isHindi ? 'बिक गया चिह्नित करें' : 'Mark as Sold'}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleDeleteProduct}
+              className="px-3.5 py-2 rounded-xl bg-red-600/80 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{isHindi ? 'सूची से हटाएं' : 'Delete'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Product Layout: Visuals & Core Specs */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         
-        {/* Left: Gallery (5 cols) */}
+        {/* Left: Gallery (6 cols) */}
         <div className="md:col-span-6 space-y-4">
           <div className="relative aspect-4/3 sm:aspect-1/1 rounded-3xl overflow-hidden border border-paper-300 bg-stone-100 shadow-craft">
             <img
@@ -159,47 +236,71 @@ export const ProductDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 3 Contact Actions Panel */}
-          <div className="bg-paper-200/80 border border-paper-300 rounded-3xl p-5 shadow-craft space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-serif text-sm font-bold text-indigo-950">
-                {t('detail.contactHeading')}
+          {/* 3 Contact Actions Panel or Sold Out Notice */}
+          {product.status === 'sold' ? (
+            <div className="bg-purple-50 border border-purple-200 rounded-3xl p-6 text-center space-y-2.5 shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="font-serif font-bold text-lg text-purple-950">
+                {isHindi ? 'यह शिल्प बिक चुका है' : 'This Craft Has Been Sold'}
               </h3>
-              <span className="text-[11px] text-terracotta-700 font-semibold">Zero Middlemen</span>
+              <p className="text-xs text-purple-800 max-w-sm mx-auto leading-relaxed">
+                {isHindi 
+                  ? 'यह अनूठी हस्तकला किसी कला प्रेमी द्वारा ख़रीदी जा चुकी है। अन्य प्रामाणिक शिल्पों के लिए बाज़ार ब्राउज़ करें।' 
+                  : 'This authentic handcrafted heirloom has already been purchased by a patron. Explore our marketplace for more master craftworks.'}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/marketplace')}
+                className="mt-2 text-purple-900 border-purple-300 hover:bg-purple-100"
+              >
+                {t('nav.marketplace')}
+              </Button>
             </div>
+          ) : (
+            <div className="bg-paper-200/80 border border-paper-300 rounded-3xl p-5 shadow-craft space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-serif text-sm font-bold text-indigo-950">
+                  {t('detail.contactHeading')}
+                </h3>
+                <span className="text-[11px] text-terracotta-700 font-semibold">Zero Middlemen</span>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {/* 1. In-App Message */}
-              <button
-                type="button"
-                onClick={() => handleOpenContactWithChannel('chat')}
-                className="p-3 rounded-2xl bg-indigo-900 hover:bg-indigo-950 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer tap-target-accessible min-h-[48px]"
-              >
-                <MessageSquare className="w-4 h-4 text-turmeric-300" />
-                <span>{t('detail.btnChat')}</span>
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {/* 1. In-App Message */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenContactWithChannel('chat')}
+                  className="p-3 rounded-2xl bg-indigo-900 hover:bg-indigo-950 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer tap-target-accessible min-h-[48px]"
+                >
+                  <MessageSquare className="w-4 h-4 text-turmeric-300" />
+                  <span>{t('detail.btnChat')}</span>
+                </button>
 
-              {/* 2. Direct Call */}
-              <button
-                type="button"
-                onClick={() => handleOpenContactWithChannel('call')}
-                className="p-3 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer tap-target-accessible min-h-[48px]"
-              >
-                <Phone className="w-4 h-4" />
-                <span>{t('detail.btnCall')}</span>
-              </button>
+                {/* 2. Direct Call */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenContactWithChannel('call')}
+                  className="p-3 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer tap-target-accessible min-h-[48px]"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>{t('detail.btnCall')}</span>
+                </button>
 
-              {/* 3. Send SMS */}
-              <button
-                type="button"
-                onClick={() => handleOpenContactWithChannel('sms')}
-                className="p-3 rounded-2xl bg-paper-100 hover:bg-paper-50 text-indigo-950 border border-paper-300 font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer tap-target-accessible min-h-[48px]"
-              >
-                <Smartphone className="w-4 h-4 text-terracotta-600" />
-                <span>{t('detail.btnSms')}</span>
-              </button>
+                {/* 3. Send SMS */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenContactWithChannel('sms')}
+                  className="p-3 rounded-2xl bg-paper-100 hover:bg-paper-50 text-indigo-950 border border-paper-300 font-semibold text-xs flex items-center justify-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer tap-target-accessible min-h-[48px]"
+                >
+                  <Smartphone className="w-4 h-4 text-terracotta-600" />
+                  <span>{t('detail.btnSms')}</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Artisan Profile Mini Card */}
           <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 shadow-craft flex items-center justify-between gap-4">

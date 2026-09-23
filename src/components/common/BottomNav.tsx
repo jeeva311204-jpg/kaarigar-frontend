@@ -2,11 +2,11 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
-import { LayoutDashboard, PlusCircle, Store, MessageSquare, User } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Store, MessageSquare, User, Shield } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const { role } = useAuth();
-  const { t } = useTranslation();
+  const { t, isHindi } = useTranslation();
   const location = useLocation();
 
   const isCurrent = (path: string) => location.pathname === path;
@@ -15,7 +15,42 @@ export const BottomNav: React.FC = () => {
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-paper-100/95 backdrop-blur-md border-t border-paper-300 pb-safe shadow-craft-lg">
       <div className="flex items-center justify-around px-2 py-1 h-16">
         
-        {role === 'artisan' ? (
+        {role === 'admin' ? (
+          <>
+            {/* Admin Cluster Dashboard */}
+            <Link
+              to="/admin"
+              className={`flex flex-col items-center justify-center flex-1 h-full tap-target-accessible transition-colors ${
+                isCurrent('/admin') ? 'text-indigo-900 font-bold' : 'text-stone-600 hover:text-indigo-950'
+              }`}
+            >
+              <Shield className="w-5 h-5 mb-0.5" />
+              <span className="text-[11px] leading-tight">{isHindi ? 'क्लस्टर' : 'Cluster'}</span>
+            </Link>
+
+            {/* Marketplace view */}
+            <Link
+              to="/marketplace"
+              className={`flex flex-col items-center justify-center flex-1 h-full tap-target-accessible transition-colors ${
+                isCurrent('/marketplace') ? 'text-indigo-900 font-bold' : 'text-stone-600 hover:text-indigo-950'
+              }`}
+            >
+              <Store className="w-5 h-5 mb-0.5" />
+              <span className="text-[11px] leading-tight">{t('nav.marketplace')}</span>
+            </Link>
+
+            {/* Profile */}
+            <Link
+              to="/profile"
+              className={`flex flex-col items-center justify-center flex-1 h-full tap-target-accessible transition-colors ${
+                isCurrent('/profile') ? 'text-indigo-900 font-bold' : 'text-stone-600 hover:text-indigo-950'
+              }`}
+            >
+              <User className="w-5 h-5 mb-0.5" />
+              <span className="text-[11px] leading-tight">{t('nav.profile')}</span>
+            </Link>
+          </>
+        ) : role === 'artisan' ? (
           <>
             {/* Dashboard */}
             <Link
@@ -69,7 +104,7 @@ export const BottomNav: React.FC = () => {
             <Link
               to="/marketplace"
               className={`flex flex-col items-center justify-center flex-1 h-full tap-target-accessible transition-colors ${
-                isCurrent('/marketplace') ? 'text-terracotta-600 font-bold' : 'text-stone-600 hover:text-indigo-950'
+                isCurrent('/marketplace') ? 'text-emerald-700 font-bold' : 'text-stone-600 hover:text-indigo-950'
               }`}
             >
               <Store className="w-5 h-5 mb-0.5" />
@@ -80,7 +115,7 @@ export const BottomNav: React.FC = () => {
             <Link
               to="/profile"
               className={`flex flex-col items-center justify-center flex-1 h-full tap-target-accessible transition-colors ${
-                isCurrent('/profile') ? 'text-terracotta-600 font-bold' : 'text-stone-600 hover:text-indigo-950'
+                isCurrent('/profile') ? 'text-emerald-700 font-bold' : 'text-stone-600 hover:text-indigo-950'
               }`}
             >
               <User className="w-5 h-5 mb-0.5" />

@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, Image as ImageIcon, Check, Sparkles, RefreshCw, Eye, Wand2, Layers, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Camera, Image as ImageIcon, Check, Sparkles, RefreshCw, Eye, Wand2, Layers, ShieldCheck, ArrowRight, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { CraftCategory } from '../../types';
 import { useTranslation } from '../../i18n';
 import { Button } from '../common/Button';
@@ -138,6 +138,8 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
       ? analysis.enhancementResult.enhancedUrl
       : imagePreview;
 
+  const isInvalidPhoto = Boolean(analysis && (analysis.isValidCraft === false || analysis.isProduct === false));
+
   return (
     <div className="space-y-6">
       
@@ -148,7 +150,7 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
             <span>{t('wizard.selectCategory')}</span>
             <span className="text-terracotta-500">*</span>
           </label>
-          {analysis && analysis.detectedCategory !== selectedCategory && (
+          {analysis && analysis.isValidCraft !== false && analysis.detectedCategory !== selectedCategory && (
             <button
               type="button"
               onClick={() => onSelectCategory(analysis.detectedCategory)}
@@ -195,20 +197,29 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
         {imagePreview ? (
           <div className="space-y-3">
             {/* Image Preview Box with Before / After Toggle */}
-            <div className="relative rounded-2xl overflow-hidden border-2 border-terracotta-400 bg-black/5 shadow-craft-md max-w-md mx-auto aspect-4/3 sm:aspect-16/10">
+            <div className={`relative rounded-2xl overflow-hidden border-2 bg-black/5 shadow-craft-md max-w-md mx-auto aspect-4/3 sm:aspect-16/10 transition-all ${
+              isInvalidPhoto ? 'border-red-500 ring-4 ring-red-400/30' : 'border-terracotta-400'
+            }`}>
               <img
                 src={currentDisplayImage || imagePreview}
                 alt="Craft capture"
                 className="w-full h-full object-cover transition-opacity duration-300"
               />
               
-              {/* Top Bar with Before / After Switcher */}
+              {/* Top Bar with Before / After Switcher or Rejection Badge */}
               <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
-                <span className="text-white text-xs font-semibold bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
-                  {t(CATEGORIES.find(c => c.key === selectedCategory)?.labelKey || 'categories.pottery')}
-                </span>
+                {isInvalidPhoto ? (
+                  <span className="text-white text-xs font-bold bg-red-600/90 backdrop-blur-md px-3 py-1 rounded-full border border-red-300 flex items-center gap-1.5 shadow-sm">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-200" />
+                    <span>{isHindi ? 'अमान्य फ़ोटो / Not a Product' : 'Not a Product / Invalid Photo'}</span>
+                  </span>
+                ) : (
+                  <span className="text-white text-xs font-semibold bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+                    {t(CATEGORIES.find(c => c.key === selectedCategory)?.labelKey || 'categories.pottery')}
+                  </span>
+                )}
 
-                {analysis?.enhancementResult && (
+                {!isInvalidPhoto && analysis?.enhancementResult && (
                   <div className="inline-flex p-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white">
                     <button
                       type="button"
@@ -236,7 +247,12 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
               {/* Bottom Overlay with Retake action */}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end justify-between p-3.5">
                 <div className="text-white text-xs">
-                  {showEnhanced ? (
+                  {isInvalidPhoto ? (
+                    <span className="flex items-center gap-1.5 text-red-200 font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-300" />
+                      {isHindi ? 'गैर-उत्पाद छवि' : 'Non-product image detected'}
+                    </span>
+                  ) : showEnhanced ? (
                     <span className="flex items-center gap-1.5 text-amber-200 font-medium">
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                       Studio Lighting & Color Enhanced
@@ -250,36 +266,119 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
                   size="sm"
                   onClick={() => cameraInputRef.current?.click()}
                   leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-                  className="text-xs"
+                  className={`text-xs ${isInvalidPhoto ? 'bg-red-600 hover:bg-red-700 text-white border-none' : ''}`}
                 >
                   {t('wizard.retake')}
                 </Button>
               </div>
             </div>
 
-            {/* AI Real-time Photo Research & Material Detection Card */}
-            <div className="bg-paper-200/80 border border-paper-300 rounded-2xl p-4 max-w-md mx-auto shadow-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-indigo-900 text-terracotta-400 flex items-center justify-center">
-                    <Wand2 className="w-3.5 h-3.5" />
+            {/* AI Real-time Photo Research & Material Detection Card OR Invalid Craft Card */}
+            {isInvalidPhoto ? (
+              <div className="bg-red-50/95 border-2 border-red-300 rounded-2xl p-4 sm:p-5 max-w-md mx-auto shadow-md space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-100 border border-red-300 flex items-center justify-center shrink-0 text-red-600 shadow-xs">
+                    <ShieldAlert className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-bold text-indigo-950">
-                    AI Visual Research & Material Detection
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-[10px] font-bold uppercase tracking-wider border border-red-200">
+                        {isHindi ? 'अस्वीकृत' : 'Not a Craft'}
+                      </span>
+                      <span className="text-[11px] text-red-600 font-semibold">
+                        {isHindi ? 'यह कोई हस्तशिल्प उत्पाद नहीं है' : 'Non-Handicraft Item'}
+                      </span>
+                    </div>
+                    <h4 className="text-sm sm:text-base font-bold text-red-950 mt-1">
+                      {isHindi ? 'यह एक प्रामाणिक शिल्प उत्पाद नहीं है' : 'This is Not an Artisan Handicraft'}
+                    </h4>
+
+                    {/* Prominent Detected Non-Craft Object Box */}
+                    {analysis?.detectedNonCraftObject && (
+                      <div className="mt-2 bg-white/90 border border-red-300 rounded-xl p-2.5 space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-red-900">
+                          <span className="text-base">
+                            {analysis.detectedNonCraftObject.toLowerCase().includes('phone') ? '📱' :
+                             analysis.detectedNonCraftObject.toLowerCase().includes('tree') ? '🌳' :
+                             analysis.detectedNonCraftObject.toLowerCase().includes('post') || analysis.detectedNonCraftObject.toLowerCase().includes('pole') ? '🏮' : '🔍'}
+                          </span>
+                          <span>{isHindi ? 'पहचानी गई वस्तु:' : 'AI Identified Subject:'}</span>
+                          <span className="text-red-700 font-extrabold">{analysis.detectedNonCraftObject}</span>
+                        </div>
+                        {isHindi && analysis.detectedNonCraftObjectHi && (
+                          <div className="text-[11px] text-stone-600 pl-6 font-hindi">
+                            ({analysis.detectedNonCraftObjectHi})
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <p className="text-xs text-red-900 mt-2 leading-relaxed font-medium">
+                      {analysis?.rejectionReason || 'The uploaded image does not appear to be an authentic handcrafted artisan product. Please upload a clear photo of your craft item.'}
+                    </p>
+                    {analysis?.rejectionReasonHi && (
+                      <p className="text-xs text-red-800 mt-1 font-hindi leading-relaxed">
+                        {analysis.rejectionReasonHi}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                {isScanning ? (
-                  <span className="text-[11px] text-terracotta-600 font-semibold animate-pulse flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 animate-spin" />
-                    Scanning photo...
-                  </span>
-                ) : (
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" />
-                    Verified ({Math.round((analysis?.confidenceScore || 0.94) * 100)}%)
-                  </span>
-                )}
+
+                <div className="bg-white/80 rounded-xl p-3 border border-red-200 text-xs text-red-900 space-y-1">
+                  <div className="font-semibold text-[11px] text-red-950 flex items-center gap-1">
+                    <span>💡 {isHindi ? 'स्वीकार्य तस्वीरें:' : 'Artisan Platform Requirements:'}</span>
+                  </div>
+                  <p className="text-[11px] text-red-800/90 leading-relaxed">
+                    {isHindi
+                      ? 'कृपया अपने हस्तनिर्मित शिल्प (मिट्टी के बर्तन, टोकरी, हथकरघा वस्त्र, काष्ठ कला, धातु शिल्प, आभूषण) की स्पष्ट तस्वीर लें। मोबाइल फोन, पेड़, खंभे, वाहन, रसीदें या गैर-शिल्प वस्तुएं स्वीकार्य नहीं हैं।'
+                      : 'Please upload an authentic handmade physical craft (pottery, textiles, woodwork, metalcraft, jewelry, baskets). Consumer electronics like mobile phones, outdoor trees/posts, vehicles, or ordinary household objects cannot be listed.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                    leftIcon={<Camera className="w-4 h-4" />}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold border-none text-xs shadow-xs"
+                  >
+                    {isHindi ? 'नई फ़ोटो लें' : 'Take New Photo'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => galleryInputRef.current?.click()}
+                    leftIcon={<ImageIcon className="w-4 h-4" />}
+                    className="flex-1 border-red-300 text-red-900 hover:bg-red-100/50 text-xs font-semibold"
+                  >
+                    {isHindi ? 'गैलरी से चुनें' : 'Choose Gallery'}
+                  </Button>
+                </div>
               </div>
+            ) : (
+              <div className="bg-paper-200/80 border border-paper-300 rounded-2xl p-4 max-w-md mx-auto shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-indigo-900 text-terracotta-400 flex items-center justify-center">
+                      <Wand2 className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs font-bold text-indigo-950">
+                      AI Visual Research & Material Detection
+                    </span>
+                  </div>
+                  {isScanning ? (
+                    <span className="text-[11px] text-terracotta-600 font-semibold animate-pulse flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 animate-spin" />
+                      Scanning photo...
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      Verified ({Math.round((analysis?.confidenceScore || 0.94) * 100)}%)
+                    </span>
+                  )}
+                </div>
 
               {analysis && (
                 <div className="space-y-2.5 text-xs text-stone-700">
@@ -294,6 +393,18 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
                           {analysis.craftNameHi}
                         </span>
                       )}
+                      {/* State / Geographic Origin Detection */}
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">State / Origin:</span>
+                        <span className="px-2 py-0.5 rounded-md bg-terracotta-50 text-terracotta-800 border border-terracotta-200 text-[11px] font-bold">
+                          🏛️ {analysis.state || 'Rajasthan (Jaipur)'}
+                        </span>
+                        {analysis.giTagNumber && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold">
+                            {analysis.giTagNumber}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span className="px-2.5 py-1 rounded-full bg-turmeric-100 text-turmeric-900 border border-turmeric-300 text-[10px] font-bold shrink-0">
                       {t(`categories.${analysis.detectedCategory}`)}
@@ -383,6 +494,7 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
                 </div>
               )}
             </div>
+            )}
 
           </div>
         ) : (
@@ -442,32 +554,68 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
         />
 
         {/* Quick Sample Selector for Demo Testing */}
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-stone-500 bg-paper-200/60 p-2.5 rounded-xl border border-paper-300">
-          <span className="flex items-center gap-1.5 font-medium text-stone-700">
-            <Sparkles className="w-3.5 h-3.5 text-turmeric-500" />
-            {isHindi ? 'त्वरित परीक्षण तस्वीरें:' : 'Instant Demo Craft Photos:'}
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="mt-3 flex flex-col gap-2 text-xs text-stone-500 bg-paper-200/60 p-3 rounded-2xl border border-paper-300">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 font-bold text-stone-800">
+              <Sparkles className="w-3.5 h-3.5 text-turmeric-500" />
+              {isHindi ? 'त्वरित परीक्षण तस्वीरें (क्लिक करके जांचें):' : 'Instant Demo Testing (Click to inspect):'}
+            </span>
+            <span className="text-[11px] text-stone-500 font-medium">
+              {isHindi ? 'शिल्प व गैर-शिल्प वस्तुओं की AI जांच' : 'AI craft & non-craft detection'}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-200">
+              {isHindi ? '✅ प्रामाणिक शिल्प:' : '✅ Valid Crafts:'}
+            </span>
             <button
               type="button"
               onClick={() => onImageChange('/samples/user_blue_pottery.png')}
-              className="text-indigo-900 hover:text-indigo-950 font-bold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200 cursor-pointer flex items-center gap-1 transition-colors"
+              className="text-indigo-900 hover:text-indigo-950 font-bold bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 cursor-pointer flex items-center gap-1 transition-colors text-xs"
             >
               <span>🏺 Blue Pottery Plate</span>
             </button>
             <button
               type="button"
               onClick={() => onImageChange('/samples/user_palm_craft.png')}
-              className="text-terracotta-800 hover:text-terracotta-950 font-bold bg-terracotta-50 px-2.5 py-1 rounded-lg border border-terracotta-200 cursor-pointer flex items-center gap-1 transition-colors"
+              className="text-terracotta-800 hover:text-terracotta-950 font-bold bg-terracotta-50 hover:bg-terracotta-100 px-2.5 py-1 rounded-lg border border-terracotta-200 cursor-pointer flex items-center gap-1 transition-colors text-xs"
             >
               <span>🌴 Palm Leaf Basket</span>
             </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-paper-300/80">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-red-800 bg-red-100/90 px-2 py-0.5 rounded-md border border-red-200">
+              {isHindi ? '❌ अमान्य तस्वीरें:' : '❌ Test Invalid:'}
+            </span>
             <button
               type="button"
-              onClick={() => onImageChange(SAMPLE_CRAFT_PREVIEWS[selectedCategory].url)}
-              className="text-stone-600 hover:text-stone-900 font-medium underline underline-offset-2 cursor-pointer"
+              onClick={() => onImageChange('/samples/sample_mobile_phone.jpg')}
+              className="text-red-700 hover:text-red-900 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg border border-red-300 cursor-pointer flex items-center gap-1 transition-colors text-xs"
             >
-              {SAMPLE_CRAFT_PREVIEWS[selectedCategory].name}
+              <span>📱 Mobile Phone</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onImageChange('/samples/sample_tree.jpg')}
+              className="text-red-700 hover:text-red-900 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg border border-red-300 cursor-pointer flex items-center gap-1 transition-colors text-xs"
+            >
+              <span>🌳 Tree / Foliage</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onImageChange('/samples/sample_utility_post.jpg')}
+              className="text-red-700 hover:text-red-900 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg border border-red-300 cursor-pointer flex items-center gap-1 transition-colors text-xs"
+            >
+              <span>🏮 Utility Post</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onImageChange('/samples/invalid_non_product.png')}
+              className="text-stone-600 hover:text-stone-900 font-medium underline underline-offset-2 cursor-pointer text-xs ml-auto"
+            >
+              {isHindi ? 'अन्य अमान्य' : 'Other Non-Product'}
             </button>
           </div>
         </div>

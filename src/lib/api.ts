@@ -12,7 +12,7 @@ import { salesRecords6Months, categoryDistribution } from './mockData';
 import { analyzeCraftPhoto } from './aiVisionAnalyzer';
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
-const FORCE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true' || true; // defaults to smart mock fallback
+const FORCE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true'; // defaults to false (calling live backend)
 
 const apiClient = axios.create({
   baseURL: API_BASE,
@@ -198,6 +198,15 @@ const craftKnowledgeBase: Record<CraftCategory, {
   }
 };
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 /**
  * Multistage AI Analysis Pipeline (Gemini Vision + Craft Intelligence + Image Enhancement)
  */
@@ -205,23 +214,41 @@ export async function analyzeProduct(
   payload: AnalyzePayload,
   onProgress?: (stage: number, stageName: string) => void
 ): Promise<AnalysisResult> {
-  // If a live backend exists and mock mode is off, attempt remote call
+  // If a live backend exists and mock mode is off, attempt remote call to backend
   if (!FORCE_MOCK) {
     try {
-      const formData = new FormData();
-      if (payload.imageFile instanceof File) {
-        formData.append('image', payload.imageFile);
-      }
-      formData.append('category', payload.category);
-      formData.append('materials', JSON.stringify(payload.materials));
-      formData.append('quantity', payload.quantity.toString());
+      if (onProgress) onProgress(1, 'Connecting to Kaarigar AI Backend API...');
 
-      const res = await apiClient.post<AnalysisResult>('/analyze-product', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      let imageDataUrl = '';
+      if (payload.imageFile instanceof Blob) {
+        imageDataUrl = await blobToDataUrl(payload.imageFile);
+      } else if (typeof payload.imageFile === 'string') {
+        imageDataUrl = payload.imageFile;
+      }
+
+      let audioDataUrl = '';
+      if (payload.voiceNoteBlob instanceof Blob) {
+        audioDataUrl = await blobToDataUrl(payload.voiceNoteBlob);
+      } else if (typeof (payload as any).audioUrl === 'string') {
+        audioDataUrl = (payload as any).audioUrl;
+      }
+
+      if (onProgress) onProgress(2, 'Processing multimodal craft appraisal via Gemini...');
+
+      const res = await apiClient.post<AnalysisResult>('/analyze-product', {
+        image: imageDataUrl,
+        audio: audioDataUrl,
+        category: payload.category,
+        materials: payload.materials || [],
+        quantity: payload.quantity || 1,
+        description: (payload as any).description || '',
+        language: (payload as any).language || 'hi'
       });
+
+      if (onProgress) onProgress(3, 'Analysis Complete');
       return res.data;
     } catch (err) {
-      console.warn('Backend call failed, continuing with Gemini Vision engine:', err);
+      console.warn('Backend call failed, continuing with Gemini Vision engine fallback:', err);
     }
   }
 
@@ -249,6 +276,15 @@ export async function analyzeProduct(
   const combinedMaterials = Array.from(new Set([...visualAnalysis.materials, ...(payload.materials || [])]));
 
   return {
+    isHandicraft: visualAnalysis.isValidCraft,
+    detectedSubject: visualAnalysis.detectedNonCraftObject || visualAnalysis.craftName,
+    isValidCraft: visualAnalysis.isValidCraft,
+    isProduct: visualAnalysis.isProduct,
+    rejectionReason: visualAnalysis.rejectionReason,
+    rejectionReasonHi: visualAnalysis.rejectionReasonHi,
+    detectedNonCraftObject: visualAnalysis.detectedNonCraftObject,
+    detectedNonCraftObjectHi: visualAnalysis.detectedNonCraftObjectHi,
+    nonCraftExplanation: visualAnalysis.nonCraftExplanation,
     enhancedImage: visualAnalysis.enhancementResult.enhancedUrl,
     originalImage: visualAnalysis.enhancementResult.originalUrl,
     detectedCategory: visualAnalysis.detectedCategory,

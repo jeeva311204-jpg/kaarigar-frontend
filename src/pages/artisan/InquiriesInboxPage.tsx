@@ -157,17 +157,31 @@ export const InquiriesInboxPage: React.FC = () => {
                           {inq.buyerName}
                         </span>
 
-                        {/* Channel Badge */}
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          inq.channel === 'call'
-                            ? 'bg-terracotta-100 text-terracotta-800'
-                            : inq.channel === 'sms'
-                            ? 'bg-turmeric-100 text-turmeric-900'
-                            : 'bg-indigo-100 text-indigo-900'
-                        }`}>
-                          {inq.channel === 'call' ? <Phone className="w-3 h-3" /> : inq.channel === 'sms' ? <Smartphone className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
-                          <span className="capitalize">{inq.channel}</span>
-                        </span>
+                        {/* Status & Channel Badges */}
+                        <div className="flex items-center gap-1.5">
+                          {inq.status === 'contacted' || (inq.replies && inq.replies.length > 0) ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>{isHindi ? 'उत्तर दिया' : 'Replied'}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-terracotta-100 text-terracotta-800">
+                              <span className="w-1.5 h-1.5 rounded-full bg-terracotta-600 animate-pulse" />
+                              <span>{isHindi ? 'नया' : 'New'}</span>
+                            </span>
+                          )}
+
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            inq.channel === 'call'
+                              ? 'bg-terracotta-100 text-terracotta-800'
+                              : inq.channel === 'sms'
+                              ? 'bg-turmeric-100 text-turmeric-900'
+                              : 'bg-indigo-100 text-indigo-900'
+                          }`}>
+                            {inq.channel === 'call' ? <Phone className="w-3 h-3" /> : inq.channel === 'sms' ? <Smartphone className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
+                            <span className="capitalize">{inq.channel}</span>
+                          </span>
+                        </div>
                       </div>
 
                       <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">

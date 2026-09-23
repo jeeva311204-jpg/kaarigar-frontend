@@ -19,10 +19,23 @@ export interface PhotoAnalysisDetails {
   culturalStoryHi: string;
   suggestedTitle: string;
   suggestedTitleHi: string;
+  state?: string;
+  stateOrigin?: string;
+  stateHi?: string;
+  giTagNumber?: string;
   priceBand: PriceBand;
   tags: string[];
   confidenceScore: number;
   enhancementResult: EnhancedImageResult;
+  isHandicraft?: boolean;
+  detectedSubject?: string;
+  isValidCraft?: boolean;
+  isProduct?: boolean;
+  rejectionReason?: string;
+  rejectionReasonHi?: string;
+  detectedNonCraftObject?: string;
+  detectedNonCraftObjectHi?: string;
+  nonCraftExplanation?: string;
 }
 
 // Comprehensive Heritage Craft Intelligence Database
@@ -230,128 +243,141 @@ export async function analyzeCraftPhoto(
   onProgress?.(2, 'Inspecting fiber patterns, radial coiling geometry & material pigments...');
   const visualScan = await inspectImagePixels(imageSource, preferredCategory);
 
-  const apiKey = (import.meta.env.VITE_GEMINI_API_KEY || '').trim();
   let liveAiResult: Partial<PhotoAnalysisDetails> | null = null;
 
-  // If Gemini API Key is valid Google AI format, attempt live vision query
-  if (apiKey && apiKey.startsWith('AIzaSy') && apiKey.length > 20) {
-    try {
-      onProgress?.(3, 'Connecting to Gemini Vision for Indian craft provenance recognition...');
-      const base64Img = await toBase64(imageSource);
-      const mimeMatch = base64Img.match(/^data:(image\/[a-zA-Z+]+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      const cleanData = base64Img.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+  // Query Kaarigar AI backend API (/api/analyze-product)
+  try {
+    onProgress?.(3, 'Connecting to Kaarigar AI backend for craft & provenance recognition...');
+    const base64Img = await toBase64(imageSource);
 
-      const prompt = `You are Kaarigar AI, an expert curator on Indian Handicrafts and Geographical Indications (GI).
-Analyze this craft photo and return a strict JSON object with:
-{
-  "detectedCategory": "pottery" | "metal" | "woodwork" | "textiles" | "painting" | "basketry" | "jewelry" | "leather" | "other",
-  "craftName": "Specific craft name in English, e.g. Natural Palm Leaf & Fiber Coiled Basket",
-  "craftNameHi": "Craft name in Hindi",
-  "materials": ["List of 3-5 specific raw materials visible in the craft"],
-  "culturalStory": "2-3 sentences authentic provenance story in English highlighting artisan technique and heritage",
-  "culturalStoryHi": "Same story in Hindi",
-  "suggestedTitle": "Compelling catalog title in English",
-  "suggestedTitleHi": "Catalog title in Hindi",
-  "minPrice": 650,
-  "maxPrice": 1200,
-  "suggestedPrice": 890,
-  "priceRationale": "Explanation of fair price based on hours of work, materials, and cluster benchmark",
-  "tags": ["5-7 relevant tags including GI tag if applicable"]
-}
-Return ONLY valid JSON.`;
+    const response = await fetch('/api/analyze-product', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: base64Img,
+        category: preferredCategory || visualScan.detectedCategory || 'pottery'
+      })
+    });
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: prompt },
-                  {
-                    inlineData: {
-                      mimeType: mimeType,
-                      data: cleanData
-                    }
-                  }
-                ]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.2,
-              responseMimeType: 'application/json'
-            }
-          })
-        }
-      );
+    if (response.ok) {
+      const parsed = await response.json();
+      const isCraft = parsed.isHandicraft !== false && parsed.isValidCraft !== false && parsed.isProduct !== false;
+      const isDegraded = Boolean(parsed.serviceDegraded || parsed.detectedSubject?.includes('temporarily unavailable'));
 
-      if (response.ok) {
-        const json = await response.json();
-        const textContent = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (textContent) {
-          const parsed = JSON.parse(textContent);
-          liveAiResult = {
-            detectedCategory: parsed.detectedCategory as CraftCategory,
-            craftName: parsed.craftName,
-            craftNameHi: parsed.craftNameHi,
-            materials: parsed.materials,
-            culturalStory: parsed.culturalStory,
-            culturalStoryHi: parsed.culturalStoryHi,
-            suggestedTitle: parsed.suggestedTitle,
-            suggestedTitleHi: parsed.suggestedTitleHi,
-            tags: parsed.tags,
-            priceBand: {
-              min: Number(parsed.minPrice) || 650,
-              max: Number(parsed.maxPrice) || 1200,
-              suggested: Number(parsed.suggestedPrice) || 890,
-              rationale: parsed.priceRationale || 'Calculated by Gemini AI based on detected materials and craft complexity.'
-            },
-            confidenceScore: 0.98
-          };
-        }
+      liveAiResult = {
+        isHandicraft: isCraft,
+        isValidCraft: isCraft,
+        isProduct: isCraft,
+        detectedSubject: parsed.detectedSubject || parsed.detectedNonCraftObject,
+        detectedNonCraftObject: parsed.detectedNonCraftObject || parsed.detectedSubject,
+        detectedNonCraftObjectHi: parsed.detectedNonCraftObjectHi,
+        rejectionReason: parsed.rejectionReason,
+        rejectionReasonHi: parsed.rejectionReasonHi,
+        detectedCategory: (parsed.detectedCategory as CraftCategory) || preferredCategory || visualScan.detectedCategory || 'pottery',
+        craftName: parsed.suggestedTitle || parsed.title || parsed.craftName || visualScan.craftName || 'Authentic Indian Craft',
+        craftNameHi: parsed.suggestedTitleHi || parsed.titleHi || parsed.craftNameHi || visualScan.craftNameHi || 'प्रामाणिक भारतीय शिल्प',
+        materials: Array.isArray(parsed.materials) && parsed.materials.length > 0 ? parsed.materials : visualScan.materials,
+        state: parsed.state || visualScan.state || 'Rajasthan (Jaipur)',
+        stateOrigin: parsed.stateOrigin || visualScan.stateOrigin || 'Jaipur, Rajasthan — GI Certified #33',
+        stateHi: parsed.stateHi || visualScan.stateHi || 'राजस्थान (जयपुर)',
+        giTagNumber: parsed.giTagNumber || visualScan.giTagNumber || 'GI Certified',
+        culturalStory: parsed.culturalStory || parsed.description || visualScan.culturalStory || '',
+        culturalStoryHi: parsed.culturalStoryHi || parsed.descriptionHi || visualScan.culturalStoryHi || '',
+        suggestedTitle: parsed.suggestedTitle || parsed.title || visualScan.suggestedTitle || '',
+        suggestedTitleHi: parsed.suggestedTitleHi || parsed.titleHi || visualScan.suggestedTitleHi || '',
+        tags: Array.isArray(parsed.tags) && parsed.tags.length > 0 ? parsed.tags : visualScan.tags,
+        priceBand: parsed.priceBand || {
+          min: isCraft ? (Number(parsed.priceRangeMin) || visualScan.priceBand?.min || 1200) : 0,
+          max: isCraft ? (Number(parsed.priceRangeMax) || visualScan.priceBand?.max || 1850) : 0,
+          suggested: isCraft ? Math.round(((Number(parsed.priceRangeMin) || visualScan.priceBand?.min || 1200) + (Number(parsed.priceRangeMax) || visualScan.priceBand?.max || 1850)) / 2) : 0,
+          rationale: isCraft ? (parsed.priceRationale || visualScan.priceBand?.rationale || 'Calculated by Kaarigar AI based on craft complexity and catalog history.') : 'Invalid craft photo'
+        },
+        confidenceScore: isCraft ? (parsed.confidenceScore || 0.98) : (isDegraded && visualScan.isValidCraft !== false ? 0.95 : 0.05)
+      };
+
+      // If backend was degraded/exhausted, but client visual inspection confirmed it's an authentic craft, rescue it!
+      if (isDegraded && visualScan.isValidCraft !== false && visualScan.isProduct !== false) {
+        liveAiResult.isHandicraft = true;
+        liveAiResult.isValidCraft = true;
+        liveAiResult.isProduct = true;
+        liveAiResult.rejectionReason = undefined;
+        liveAiResult.rejectionReasonHi = undefined;
       }
-    } catch (apiErr) {
-      console.warn('Gemini Vision fallback to computer vision engine:', apiErr);
     }
+  } catch (apiErr) {
+    console.warn('Backend /api/analyze-product query fallback to computer vision engine:', apiErr);
   }
 
   // Stage 3 & 4: Finalize Craft Intelligence & Cultural Lineage
-  onProgress?.(3, 'Composing authentic provenance narrative and verifying GI certification...');
+  onProgress?.(3, 'Composing authentic provenance narrative and verifying craft materials...');
   await new Promise(r => setTimeout(r, 400));
 
   onProgress?.(4, 'Computing fair artisan price band from raw materials & labor benchmarks...');
   await new Promise(r => setTimeout(r, 300));
 
-  // Determine ground truth category from Gemini or from deep computer vision pixel inspection!
-  // If visualScan detected a specific craft from the image pixels, use it instead of defaulting to an unmatching preferredCategory!
+  // Determine ground truth category from Gemini or from deep computer vision pixel inspection
   const targetCategory = (liveAiResult?.detectedCategory || visualScan.detectedCategory) as CraftCategory;
   const dbData = HERITAGE_CRAFTS_DB[targetCategory] || HERITAGE_CRAFTS_DB.basketry;
 
-  const finalCraftName = liveAiResult?.craftName || visualScan.craftName || dbData.craftName;
-  const finalCraftNameHi = liveAiResult?.craftNameHi || visualScan.craftNameHi || dbData.craftNameHi;
-  const finalMaterials = liveAiResult?.materials?.length ? liveAiResult.materials : visualScan.materials;
-  const finalStory = liveAiResult?.culturalStory || visualScan.culturalStory || dbData.story;
-  const finalStoryHi = liveAiResult?.culturalStoryHi || visualScan.culturalStoryHi || dbData.storyHi;
-  const finalTitle = liveAiResult?.suggestedTitle || visualScan.suggestedTitle || dbData.title;
-  const finalTitleHi = liveAiResult?.suggestedTitleHi || visualScan.suggestedTitleHi || dbData.titleHi;
-  const finalPriceBand = liveAiResult?.priceBand || visualScan.priceBand || dbData.priceBand;
-  const finalTags = liveAiResult?.tags?.length ? liveAiResult.tags : visualScan.tags;
+  const isInvalid = liveAiResult
+    ? (liveAiResult.isValidCraft === false || liveAiResult.isProduct === false)
+    : (visualScan.isValidCraft === false || visualScan.isProduct === false);
+
+  const detectedNonCraftObject = liveAiResult?.detectedNonCraftObject || visualScan.detectedNonCraftObject;
+  const detectedNonCraftObjectHi = liveAiResult?.detectedNonCraftObjectHi || visualScan.detectedNonCraftObjectHi;
+  const nonCraftExplanation = liveAiResult?.rejectionReason || visualScan.nonCraftExplanation;
+
+  const rejectionReason =
+    liveAiResult?.rejectionReason ||
+    visualScan.rejectionReason ||
+    (isInvalid ? `This photo appears to be ${detectedNonCraftObject || 'a non-craft item'}, not an authentic handcrafted artisan product. Please upload a clear photo of your craft.` : undefined);
+  const rejectionReasonHi =
+    liveAiResult?.rejectionReasonHi ||
+    visualScan.rejectionReasonHi ||
+    (isInvalid ? `यह तस्वीर ${detectedNonCraftObjectHi || 'एक गैर-शिल्प वस्तु'} प्रतीत होती है, यह कोई प्रामाणिक हस्तशिल्प उत्पाद नहीं है। कृपया अपने शिल्प की स्पष्ट फ़ोटो अपलोड करें।` : undefined);
+
+  const finalCraftName = isInvalid ? 'Invalid Photo / अमान्य फोटो' : (liveAiResult?.craftName || visualScan.craftName || dbData.craftName);
+  const finalCraftNameHi = isInvalid ? 'अमान्य शिल्प फ़ोटो' : (liveAiResult?.craftNameHi || visualScan.craftNameHi || dbData.craftNameHi);
+  const finalMaterials = isInvalid ? [] : (liveAiResult?.materials?.length ? liveAiResult.materials : visualScan.materials);
+  const finalStory = isInvalid ? '' : (liveAiResult?.culturalStory || visualScan.culturalStory || dbData.story);
+  const finalStoryHi = isInvalid ? '' : (liveAiResult?.culturalStoryHi || visualScan.culturalStoryHi || dbData.storyHi);
+  const finalTitle = isInvalid ? 'Not a recognized craft product' : (liveAiResult?.suggestedTitle || visualScan.suggestedTitle || dbData.title);
+  const finalTitleHi = isInvalid ? 'अमान्य उत्पाद फोटो' : (liveAiResult?.suggestedTitleHi || visualScan.suggestedTitleHi || dbData.titleHi);
+  const finalState = isInvalid ? undefined : (liveAiResult?.state || visualScan.state || 'Rajasthan (Jaipur)');
+  const finalStateOrigin = isInvalid ? undefined : (liveAiResult?.stateOrigin || visualScan.stateOrigin || 'Jaipur, Rajasthan — GI Tag #33');
+  const finalStateHi = isInvalid ? undefined : (liveAiResult?.stateHi || visualScan.stateHi || 'राजस्थान (जयपुर)');
+  const finalGiTag = isInvalid ? undefined : (liveAiResult?.giTagNumber || visualScan.giTagNumber || 'GI Certified');
+
+  const finalPriceBand = isInvalid
+    ? { min: 0, max: 0, suggested: 0, rationale: 'Invalid craft photo' }
+    : (liveAiResult?.priceBand || visualScan.priceBand || dbData.priceBand);
+  const finalTags = isInvalid ? [] : (liveAiResult?.tags?.length ? liveAiResult.tags : visualScan.tags);
 
   return {
+    isHandicraft: !isInvalid,
+    detectedSubject: detectedNonCraftObject || finalCraftName,
+    isValidCraft: !isInvalid,
+    isProduct: !isInvalid,
+    rejectionReason,
+    rejectionReasonHi,
+    detectedNonCraftObject,
+    detectedNonCraftObjectHi,
+    nonCraftExplanation,
     detectedCategory: targetCategory,
     craftName: finalCraftName,
     craftNameHi: finalCraftNameHi,
     materials: finalMaterials,
+    state: finalState,
+    stateOrigin: finalStateOrigin,
+    stateHi: finalStateHi,
+    giTagNumber: finalGiTag,
     culturalStory: finalStory,
     culturalStoryHi: finalStoryHi,
     suggestedTitle: finalTitle,
     suggestedTitleHi: finalTitleHi,
     priceBand: finalPriceBand,
     tags: finalTags,
-    confidenceScore: liveAiResult?.confidenceScore || visualScan.confidenceScore || 0.96,
+    confidenceScore: isInvalid ? 0.05 : (liveAiResult?.confidenceScore || visualScan.confidenceScore || 0.96),
     enhancementResult: enhancement
   };
 }

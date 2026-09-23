@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n';
 import { initialArtisan, salesRecords6Months, categoryDistribution } from '../../lib/mockData';
@@ -11,14 +12,21 @@ import {
   Calendar, 
   Users, 
   Sparkles, 
-  Star 
+  Star,
+  LogOut
 } from 'lucide-react';
 
 export const ArtisanProfilePage: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { t, isHindi } = useTranslation();
+  const navigate = useNavigate();
 
   const artisan = currentUser.artisanData || initialArtisan;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/auth');
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-12 space-y-6">
@@ -81,15 +89,47 @@ export const ArtisanProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 6-Month Sales & Analytics Section */}
-      <div className="space-y-3">
-        <h2 className="font-serif text-xl sm:text-2xl font-bold text-indigo-950">
-          {t('profile.analytics')}
-        </h2>
-        <SalesChart
-          records={salesRecords6Months}
-          distribution={categoryDistribution}
-        />
+      {/* 6-Month Sales & Analytics Section (for Artisans and Admins) */}
+      {(currentUser.role === 'artisan' || currentUser.role === 'admin') && (
+        <div className="space-y-3">
+          <h2 className="font-serif text-xl sm:text-2xl font-bold text-indigo-950">
+            {t('profile.analytics')}
+          </h2>
+          <SalesChart
+            records={salesRecords6Months}
+            distribution={categoryDistribution}
+          />
+        </div>
+      )}
+
+      {/* Account Settings & Sign Out Action */}
+      <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="text-sm font-bold text-indigo-950">
+            {isHindi ? 'सत्र एवं खाता प्रबंधन' : 'Session & Account Management'}
+          </div>
+          <div className="text-xs text-stone-500 mt-0.5">
+            {isHindi ? `वर्तमान भूमिका: ${currentUser.role} • फ़ोन: ${currentUser.phone}` : `Signed in as ${currentUser.role.toUpperCase()} • Mobile: ${currentUser.phone}`}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/auth')}
+            className="flex-1 sm:flex-none px-4 py-2 rounded-xl border border-paper-300 text-xs font-bold text-stone-700 hover:bg-paper-200 transition-colors cursor-pointer"
+          >
+            {isHindi ? 'भूमिका बदलें' : 'Switch Role'}
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-rose-50 border border-rose-200 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>{isHindi ? 'लॉग आउट' : 'Sign Out'}</span>
+          </button>
+        </div>
       </div>
 
     </div>

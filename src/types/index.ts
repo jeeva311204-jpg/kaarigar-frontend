@@ -11,7 +11,7 @@ export type CraftCategory =
   | 'leather' 
   | 'other';
 
-export type ProductStatus = 'live' | 'draft' | 'pending_sync' | 'archived';
+export type ProductStatus = 'live' | 'draft' | 'sold' | 'pending_sync' | 'archived';
 
 export interface PriceBand {
   min: number;
@@ -41,6 +41,7 @@ export interface Product {
   priceMax: number;
   finalPrice: number;
   images: string[];
+  ownerId?: string;
   artisanId: string;
   artisanName: string;
   artisanLocation: string;
@@ -56,6 +57,7 @@ export interface Product {
   audioTranscript?: string;
   audioTranscriptHi?: string;
   createdAt: string;
+  soldAt?: string;
 }
 
 export type InquiryChannel = 'chat' | 'call' | 'sms';
@@ -105,6 +107,16 @@ export interface Artisan {
 }
 
 export interface AnalysisResult {
+  isHandicraft?: boolean;
+  detectedSubject?: string;
+  isValidCraft?: boolean;
+  isProduct?: boolean;
+  rejectionReason?: string;
+  rejectionReasonHi?: string;
+  detectedNonCraftObject?: string;
+  detectedNonCraftObjectHi?: string;
+  nonCraftExplanation?: string;
+  validationError?: string;
   enhancedImage: string;
   originalImage?: string;
   detectedCategory: CraftCategory;
@@ -113,6 +125,10 @@ export interface AnalysisResult {
   culturalStory: string;
   culturalStoryHi: string;
   materials: string[];
+  state?: string;
+  stateOrigin?: string;
+  stateHi?: string;
+  giTagNumber?: string;
   tags: string[];
   detectedLanguage: string;
   audioTranscript: string;

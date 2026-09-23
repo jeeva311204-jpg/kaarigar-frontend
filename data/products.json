@@ -1,5 +1,19 @@
 [
   {
+    "id": "prod-test-craft-101",
+    "title": "Ramswaroop Authentic Blue Vase - Updated",
+    "category": "pottery",
+    "priceMin": 1500,
+    "priceMax": 2000,
+    "finalPrice": 1750,
+    "status": "sold",
+    "createdAt": "2026-09-22T20:22:14.518Z",
+    "ownerId": "artisan-ramswaroop",
+    "artisanId": "artisan-ramswaroop",
+    "updatedAt": "2026-09-22T20:22:15.154Z",
+    "soldAt": "2026-09-22T20:22:15.154Z"
+  },
+  {
     "id": "prod-mud1q2sz",
     "title": "Handcrafted Palm Leaf & Sikki Grass Coiled Decorative Basket",
     "titleHi": "हस्तनिर्मित ताड़ के पत्ते और सिककी घास पारंपरिक सजावटी टोकरी",

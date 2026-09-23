@@ -12,7 +12,9 @@ import {
   MessageSquare, 
   User, 
   Wifi, 
-  WifiOff 
+  WifiOff,
+  Shield,
+  LogIn
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -29,12 +31,17 @@ export const Header: React.FC = () => {
   };
 
   const navLinks = [
-    ...(role === 'artisan' ? [
+    ...(role === 'admin' ? [
+      { to: '/admin', label: isHindi ? 'क्लस्टर एडमिन' : 'Cluster Admin', icon: <Shield className="w-4 h-4" /> },
+      { to: '/marketplace', label: t('nav.marketplace'), icon: <Store className="w-4 h-4" /> },
+    ] : role === 'artisan' ? [
       { to: '/', label: t('nav.dashboard'), icon: <LayoutDashboard className="w-4 h-4" /> },
       { to: '/add-product', label: t('nav.addCraft'), icon: <PlusCircle className="w-4 h-4" /> },
       { to: '/inbox', label: t('nav.inbox'), icon: <MessageSquare className="w-4 h-4" /> },
-    ] : []),
-    { to: '/marketplace', label: t('nav.marketplace'), icon: <Store className="w-4 h-4" /> },
+      { to: '/marketplace', label: t('nav.marketplace'), icon: <Store className="w-4 h-4" /> },
+    ] : [
+      { to: '/marketplace', label: t('nav.marketplace'), icon: <Store className="w-4 h-4" /> },
+    ]),
     { to: '/profile', label: t('nav.profile'), icon: <User className="w-4 h-4" /> },
   ];
 
@@ -105,23 +112,33 @@ export const Header: React.FC = () => {
               <span className="text-[11px] font-medium text-stone-500 px-1.5 hidden xl:inline">
                 {t('common.switchRole')}
               </span>
-              {(['artisan', 'buyer'] as UserRole[]).map((r) => {
+              {(['artisan', 'buyer', 'admin'] as UserRole[]).map((r) => {
                 const isSelected = role === r;
                 return (
                   <button
                     key={r}
                     onClick={() => setRole(r)}
-                    className={`px-2.5 sm:px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                    className={`px-2 sm:px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-indigo-900 text-white shadow-xs'
+                        ? (r === 'admin' ? 'bg-indigo-950 text-white shadow-xs' : r === 'artisan' ? 'bg-terracotta-600 text-white shadow-xs' : 'bg-emerald-600 text-white shadow-xs')
                         : 'text-stone-600 hover:text-indigo-900'
                     }`}
                   >
-                    {r === 'artisan' ? (isHindi ? 'कारीगर' : 'Artisan') : (isHindi ? 'खरीदार' : 'Buyer')}
+                    {r === 'artisan' ? (isHindi ? 'कारीगर' : 'Artisan') : r === 'buyer' ? (isHindi ? 'खरीदार' : 'Buyer') : (isHindi ? 'एडमिन' : 'Admin')}
                   </button>
                 );
               })}
             </div>
+
+            {/* Separate Login Pages Link */}
+            <Link
+              to="/auth"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-paper-300 bg-paper-50 hover:bg-paper-200 text-xs sm:text-sm font-semibold text-stone-700 hover:text-indigo-950 shadow-xs transition-colors cursor-pointer tap-target-accessible min-h-[40px]"
+              title={isHindi ? 'अलग-अलग लॉगिन पेज (कारीगर / खरीदार / एडमिन)' : 'Dedicated Login Pages (Artisan / Buyer / Admin)'}
+            >
+              <LogIn className="w-4 h-4 text-terracotta-600" />
+              <span className="hidden md:inline">{isHindi ? 'लॉगिन' : 'Login'}</span>
+            </Link>
 
             {/* Profile Avatar Chip */}
             <Link
@@ -136,6 +153,11 @@ export const Header: React.FC = () => {
               />
               <span className="text-xs font-semibold text-indigo-950 hidden lg:inline max-w-[100px] truncate">
                 {currentUser.name.split(' ')[0]}
+              </span>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline ${
+                role === 'admin' ? 'bg-indigo-900 text-white' : role === 'artisan' ? 'bg-terracotta-600 text-white' : 'bg-emerald-600 text-white'
+              }`}>
+                {role}
               </span>
             </Link>
 

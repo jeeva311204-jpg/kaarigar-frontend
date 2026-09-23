@@ -59,11 +59,22 @@ export const ReviewPublishPage: React.FC = () => {
         setReviewData(parsed);
 
         const res: AnalysisResult = parsed.analysisResult;
+        if (res.isHandicraft === false || res.isValidCraft === false || res.isProduct === false) {
+          const subject = res.detectedSubject || res.detectedNonCraftObject || 'an unrelated item';
+          showToast({
+            type: 'error',
+            title: isHindi ? 'अमान्य शिल्प उत्पाद' : 'Invalid Craft Product',
+            message: res.rejectionReason || `This looks like ${subject}, not a handmade craft. Please upload a photo of your product instead.`
+          });
+          navigate('/add-product');
+          return;
+        }
+
         setTitle(isHindi && res.suggestedTitleHi ? res.suggestedTitleHi : res.suggestedTitle);
         setCulturalStory(isHindi && res.culturalStoryHi ? res.culturalStoryHi : res.culturalStory);
-        setFinalPrice(res.priceBand.suggested);
-        setMinPrice(res.priceBand.min);
-        setMaxPrice(res.priceBand.max);
+        setFinalPrice(res.priceBand?.suggested || 1500);
+        setMinPrice(res.priceBand?.min || 1200);
+        setMaxPrice(res.priceBand?.max || 1800);
         setMaterials(res.materials || []);
         setTags(res.tags || []);
       } else {
@@ -117,16 +128,17 @@ export const ReviewPublishPage: React.FC = () => {
       priceMax: maxPrice,
       finalPrice: finalPrice,
       images: [chosenImage],
+      ownerId: currentUser.id,
       artisanId: currentUser.id,
       artisanName: currentUser.name,
-      artisanLocation: currentUser.artisanData?.location || 'Rajasthan, India',
+      artisanLocation: analysisResult.state || currentUser.artisanData?.location || 'Rajasthan, India',
       artisanPhone: currentUser.phone,
-      craftOrigin: 'Artisan Workshop Heritage Cluster',
+      craftOrigin: analysisResult.stateOrigin || analysisResult.state || 'Artisan Workshop Heritage Cluster',
       materials: materials,
       stockQuantity: wizardData.quantity || 8,
       status: 'live',
       giTagged: true,
-      giTagNumber: 'GI-VERIFIED',
+      giTagNumber: analysisResult.giTagNumber || 'GI-VERIFIED',
       tags: tags,
       detectedLanguage: analysisResult.detectedLanguage,
       audioTranscript: wizardData.audioTranscript || analysisResult.audioTranscript,
@@ -330,6 +342,28 @@ export const ReviewPublishPage: React.FC = () => {
                 + Add
               </button>
             </form>
+          </div>
+
+          {/* Heritage Geographic Provenance & State of Origin Card */}
+          <div className="bg-paper-100 border border-paper-300 rounded-3xl p-4 shadow-craft space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-stone-600 uppercase tracking-wider block">
+                🏛️ Craft State & GI Origin
+              </span>
+              {analysisResult.giTagNumber && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold">
+                  {analysisResult.giTagNumber}
+                </span>
+              )}
+            </div>
+            <div className="p-2.5 bg-paper-50 rounded-xl border border-paper-300 flex items-center justify-between text-xs">
+              <span className="font-bold text-indigo-950">
+                {analysisResult.state || 'Rajasthan (Jaipur)'}
+              </span>
+              <span className="text-[11px] text-terracotta-700 font-medium">
+                {analysisResult.stateOrigin || 'GI Certified Heritage Cluster'}
+              </span>
+            </div>
           </div>
 
           {/* Voice Transcript Card */}

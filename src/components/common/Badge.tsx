@@ -65,5 +65,14 @@ export const Badge: React.FC<BadgeProps> = ({
     );
   }
 
+  if (status === 'sold') {
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-900 border border-purple-200 shadow-xs ${className}`}>
+        <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+        <span>Sold</span>
+      </span>
+    );
+  }
+
   return null;
 };

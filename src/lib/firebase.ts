@@ -122,9 +122,14 @@ export async function saveProductRecord(product: Product): Promise<void> {
 
   // Sync to Backend Server Persistent Database (data/products.json)
   try {
+    const token = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     await fetch('/api/products', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(product)
     });
   } catch (apiErr) {
@@ -161,6 +166,17 @@ export async function saveInquiryRecord(inquiry: Inquiry): Promise<void> {
   inqs.unshift(inquiry);
   setLocalStore(STORAGE_KEYS.INQUIRIES, inqs);
 
+  // Sync to backend persistent store
+  try {
+    await fetch('/api/inquiries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inquiry)
+    });
+  } catch (apiErr) {
+    console.warn('Backend server inquiries.json sync skipped:', apiErr);
+  }
+
   if (db && isFirebaseConfigured) {
     try {
       await setDoc(doc(db, 'inquiries', inquiry.id), inquiry);
@@ -178,6 +194,22 @@ export async function replyToInquiryRecord(inquiryId: string, reply: InquiryRepl
     target.replies.push(reply);
     target.status = 'contacted';
     setLocalStore(STORAGE_KEYS.INQUIRIES, inqs);
+  }
+
+  // Sync reply to backend
+  try {
+    const token = auth?.currentUser ? await auth.currentUser.getIdToken() : null;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    await fetch(`/api/inquiries/${inquiryId}/reply`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ message: reply.message, senderName: 'Artisan' })
+    });
+  } catch (apiErr) {
+    console.warn('Backend server reply sync skipped:', apiErr);
   }
 
   if (db && isFirebaseConfigured) {
@@ -199,4 +231,75 @@ export async function replyToInquiryRecord(inquiryId: string, reply: InquiryRepl
 
 export async function fetchArtisanProfile(): Promise<Artisan> {
   return getLocalStore<Artisan>(STORAGE_KEYS.ARTISAN, initialArtisan);
+}
+
+export async function markProductAsSoldRecord(productId: string): Promise<boolean> {
+  // Update local store for instant reactive UI
+  const prods = getLocalStore<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
+  const targetIdx = prods.findIndex(p => p.id === productId);
+  if (targetIdx >= 0) {
+    prods[targetIdx] = {
+      ...prods[targetIdx],
+      status: 'sold',
+      soldAt: new Date().toISOString()
+    };
+    setLocalStore(STORAGE_KEYS.PRODUCTS, prods);
+  }
+
+  // Sync to Backend Server API (POST /api/products/:id/sold)
+  try {
+    const token = auth?.currentUser 
+      ? await auth.currentUser.getIdToken() 
+      : (localStorage.getItem('kaarigar_auth_token') || 'test-token-artisan-ramswaroop');
+    
+    await fetch(`/api/products/${productId}/sold`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  } catch (apiErr) {
+    console.warn('Backend mark-sold sync skipped:', apiErr);
+  }
+
+  // Sync to Firestore if configured
+  if (db && isFirebaseConfigured) {
+    try {
+      const ref = doc(db, 'products', productId);
+      await updateDoc(ref, {
+        status: 'sold',
+        soldAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Firestore mark-sold update failed:', e);
+    }
+  }
+
+  return true;
+}
+
+export async function deleteProductRecord(productId: string): Promise<boolean> {
+  // Remove from local reactive store
+  const prods = getLocalStore<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
+  const updatedProds = prods.filter(p => p.id !== productId);
+  setLocalStore(STORAGE_KEYS.PRODUCTS, updatedProds);
+
+  // Sync to Backend Server API (DELETE /api/products/:id)
+  try {
+    const token = auth?.currentUser 
+      ? await auth.currentUser.getIdToken() 
+      : (localStorage.getItem('kaarigar_auth_token') || 'test-token-artisan-ramswaroop');
+
+    await fetch(`/api/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+  } catch (apiErr) {
+    console.warn('Backend delete sync skipped:', apiErr);
+  }
+
+  return true;
 }

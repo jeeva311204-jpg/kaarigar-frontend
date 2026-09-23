@@ -10,6 +10,7 @@ import { WizardStep1Photo } from '../components/artisan/WizardStep1Photo';
 import { VoiceTextStep } from '../components/wizard/VoiceTextStep';
 import { WizardStep3Details } from '../components/artisan/WizardStep3Details';
 import { ProcessingModal } from '../components/artisan/ProcessingModal';
+import { InvalidPhotoModal } from '../components/artisan/InvalidPhotoModal';
 import { ArrowLeft, ArrowRight, Save, Sparkles, Check } from 'lucide-react';
 
 /**
@@ -26,6 +27,11 @@ export const AddProduct = () => {
 
   // Wizard Step State (1: Photo + Category, 2: Voice/Text, 3: Material + Quantity)
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Photo Analysis & Validation State
+  const [photoAnalysis, setPhotoAnalysis] = useState(null);
+  const [isInvalidModalOpen, setIsInvalidModalOpen] = useState(false);
+  const [invalidModalData, setInvalidModalData] = useState({});
 
   // Step 1: Photo + Category
   const [category, setCategory] = useState('pottery');
@@ -68,6 +74,24 @@ export const AddProduct = () => {
           title: 'Photo Required',
           message: 'Please take or choose a photo of your craft.'
         });
+        return;
+      }
+      if (photoAnalysis && (photoAnalysis.isHandicraft === false || photoAnalysis.isValidCraft === false || photoAnalysis.isProduct === false)) {
+        const subject = photoAnalysis.detectedSubject || photoAnalysis.detectedNonCraftObject || 'an unrelated item';
+        const rejectionMsg = photoAnalysis.rejectionReason || `This looks like ${subject}, not a handmade craft. Please upload a photo of your product instead.`;
+        showToast({
+          type: 'error',
+          title: isHindi ? 'अमान्य उत्पाद फ़ोटो' : 'Invalid Photo',
+          message: rejectionMsg
+        });
+        setInvalidModalData({
+          reason: rejectionMsg,
+          reasonHi: photoAnalysis.rejectionReasonHi,
+          detectedSubject: subject,
+          detectedNonCraftObject: subject,
+          detectedNonCraftObjectHi: photoAnalysis.detectedNonCraftObjectHi
+        });
+        setIsInvalidModalOpen(true);
         return;
       }
       setCurrentStep(2);
@@ -150,6 +174,23 @@ export const AddProduct = () => {
           setAiStageMessage(msg);
         }
       );
+
+      // Check if photo is invalid / not a craft product
+      if (result.isHandicraft === false || result.isValidCraft === false || result.isProduct === false) {
+        setIsProcessing(false);
+        const subject = result.detectedSubject || result.detectedNonCraftObject || 'an unrelated item';
+        const rejectionMsg = result.rejectionReason || `This looks like ${subject}, not a handmade craft. Please upload a photo of your product instead.`;
+        setInvalidModalData({
+          reason: rejectionMsg,
+          reasonHi: result.rejectionReasonHi,
+          detectedSubject: subject,
+          detectedNonCraftObject: subject,
+          detectedNonCraftObjectHi: result.detectedNonCraftObjectHi
+        });
+        setIsInvalidModalOpen(true);
+        setCurrentStep(1); // Return artisan to photo step while preserving category, materials, quantity, voice
+        return;
+      }
 
       // Store analysis result & wizard payload in session/localStorage for ReviewPublishPage
       const reviewPayload = {
@@ -257,9 +298,11 @@ export const AddProduct = () => {
             imagePreview={imagePreview}
             onImageChange={(url, file) => {
               setImagePreview(url);
+              setPhotoAnalysis(null);
               if (file) setImageFile(file);
             }}
             onAnalysisComplete={(analysis) => {
+              setPhotoAnalysis(analysis);
               if (analysis.materials?.length) {
                 setSelectedMaterials((prev) => Array.from(new Set([...prev, ...analysis.materials])));
               }
@@ -324,6 +367,21 @@ export const AddProduct = () => {
         isOpen={isProcessing}
         currentStage={aiStage}
         stageMessage={aiStageMessage}
+      />
+
+      {/* Dedicated Invalid Photo Rejection Dialog */}
+      <InvalidPhotoModal
+        isOpen={isInvalidModalOpen}
+        onClose={() => setIsInvalidModalOpen(false)}
+        onRetake={() => {
+          setIsInvalidModalOpen(false);
+          setCurrentStep(1);
+        }}
+        rejectionReason={invalidModalData.reason}
+        rejectionReasonHi={invalidModalData.reasonHi}
+        detectedSubject={invalidModalData.detectedSubject}
+        detectedNonCraftObject={invalidModalData.detectedNonCraftObject}
+        detectedNonCraftObjectHi={invalidModalData.detectedNonCraftObjectHi}
       />
 
     </div>

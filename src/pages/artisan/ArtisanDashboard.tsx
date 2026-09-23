@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Product, ProductStatus } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { useTranslation } from '../../i18n';
-import { fetchProducts, fetchInquiries } from '../../lib/firebase';
+import { fetchProducts, fetchInquiries, markProductAsSoldRecord, deleteProductRecord } from '../../lib/firebase';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { 
@@ -15,11 +16,15 @@ import {
   ArrowUpRight, 
   ShieldCheck,
   ChevronRight,
-  Filter
+  Filter,
+  CheckCircle2,
+  Trash2,
+  Tag
 } from 'lucide-react';
 
 export const ArtisanDashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const { showToast } = useToast();
   const { t, isHindi } = useTranslation();
   const navigate = useNavigate();
 
@@ -59,6 +64,34 @@ export const ArtisanDashboard: React.FC = () => {
 
   const activeListingsCount = products.filter((p) => p.status === 'live').length;
   const pendingCount = products.filter((p) => p.status === 'pending_sync').length;
+  const soldCount = products.filter((p) => p.status === 'sold').length;
+
+  const handleMarkSold = async (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await markProductAsSoldRecord(productId);
+    showToast({
+      type: 'success',
+      title: isHindi ? 'शिल्प बिक गया' : 'Marked as Sold',
+      message: isHindi ? 'उत्पाद को सफलतापूर्वक बिक गया चिह्नित किया गया।' : 'Craft marked as sold successfully!'
+    });
+    await loadData();
+  };
+
+  const handleDelete = async (productId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm(isHindi ? 'क्या आप इस शिल्प को सूची से हटाना चाहते हैं?' : 'Are you sure you want to delete this listing?')) {
+      return;
+    }
+    await deleteProductRecord(productId);
+    showToast({
+      type: 'info',
+      title: isHindi ? 'शिल्प हटाया गया' : 'Craft Deleted',
+      message: isHindi ? 'उत्पाद सूची से हटा दिया गया।' : 'Product deleted from your catalog.'
+    });
+    await loadData();
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 md:pb-12">
@@ -180,11 +213,12 @@ export const ArtisanDashboard: React.FC = () => {
 
           {/* Filter Tabs */}
           <div className="flex items-center gap-1.5 p-1 bg-paper-200 rounded-2xl border border-paper-300 self-start sm:self-auto overflow-x-auto">
-            {(['all', 'live', 'draft', 'pending_sync'] as ('all' | ProductStatus)[]).map((tab) => {
+            {(['all', 'live', 'draft', 'sold', 'pending_sync'] as ('all' | ProductStatus)[]).map((tab) => {
               const isSelected = activeFilter === tab;
               let label = t('dashboard.tabAll');
               if (tab === 'live') label = t('dashboard.tabLive');
               if (tab === 'draft') label = t('dashboard.tabDraft');
+              if (tab === 'sold') label = isHindi ? 'बिका हुआ (Sold)' : 'Sold Out';
               if (tab === 'pending_sync') label = t('dashboard.tabPending');
 
               return (
@@ -256,23 +290,57 @@ export const ArtisanDashboard: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="pt-3 border-t border-paper-300 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-stone-500 block">
-                        {t('review.setFinalPrice')}
-                      </span>
-                      <span className="font-serif font-bold text-lg text-indigo-950">
-                        ₹{prod.finalPrice.toLocaleString('en-IN')}
-                      </span>
+                  <div className="pt-3 border-t border-paper-300 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-stone-500 block">
+                          {t('review.setFinalPrice')}
+                        </span>
+                        <span className="font-serif font-bold text-lg text-indigo-950">
+                          ₹{prod.finalPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      <Link
+                        to={`/product/${prod.id}`}
+                        className="text-xs font-bold text-terracotta-600 hover:text-terracotta-800 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                      >
+                        <span>{t('marketplace.viewDetails')}</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
 
-                    <Link
-                      to={`/product/${prod.id}`}
-                      className="text-xs font-bold text-terracotta-600 hover:text-terracotta-800 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
-                    >
-                      <span>{t('marketplace.viewDetails')}</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Link>
+                    {/* Artisan Management Toolbar */}
+                    <div className="flex items-center justify-between pt-2 border-t border-dashed border-paper-300/80">
+                      {prod.status === 'live' ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleMarkSold(prod.id, e)}
+                          className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" />
+                          <span>{isHindi ? 'बिक गया चिह्नित करें' : 'Mark as Sold'}</span>
+                        </button>
+                      ) : prod.status === 'sold' ? (
+                        <span className="text-[11px] font-semibold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-purple-600" />
+                          <span>{isHindi ? 'सफलतापूर्वक बिक चुका है' : 'Sold to Patron'}</span>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-stone-400 capitalize">
+                          {prod.status}
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDelete(prod.id, e)}
+                        className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        title={isHindi ? 'सूची से हटाएं' : 'Delete listing'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
