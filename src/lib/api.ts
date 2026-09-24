@@ -179,6 +179,108 @@ const craftKnowledgeBase: Record<CraftCategory, {
     audioTranscript: 'यह मोजड़ी शुद्ध चमड़े की है और इस पर हाथों से रेशम का काम किया गया है। बहुत आरामदायक और मजबूत है।',
     audioTranscriptHi: 'यह मोजड़ी शुद्ध चमड़े की है और इस पर हाथों से रेशम का काम किया गया है। बहुत आरामदायक और मजबूत है।'
   },
+  terracotta: {
+    title: 'Heritage Bankura Terracotta Long-Neck Horse & Figurine',
+    titleHi: 'पारंपरिक बांकुड़ा टेराकोटा लंबा गर्दन अश्व शिल्प',
+    story: 'Molded by Kumbhakar artisans of Panchmura village using alluvial clay turned on wheels, sculpted by hand, and fired in indigenous underground wood kilns without chemical glazes.',
+    storyHi: 'पंचमुड़ा गांव के कुंभकार कारीगरों द्वारा नदी की चिकनी मिट्टी को चाक पर ढालकर और हाथ से गढ़कर भूगर्भीय भट्टी में पकाया गया प्रसिद्ध बांकुड़ा घोड़ा।',
+    materials: ['Alluvial River Clay', 'Rice Husk Ash', 'Natural Red Ochre', 'Wood Kiln Ash'],
+    tags: ['Bankura Horse', 'GI Tagged #44', 'Terracotta', 'Handcrafted Clay', 'Natural Ochre'],
+    priceBand: {
+      min: 950,
+      max: 1850,
+      suggested: 1350,
+      rationale: 'Reflects 14 hours of manual sculpting, seasonal clay curing, and traditional open-kiln firing.',
+      rationaleHi: '14 घंटे की हस्त शिल्पकला, मिट्टी की तैयारी और पारंपरिक भट्टी में पकाने के आधार पर।'
+    },
+    audioTranscript: 'यह बांकुड़ा घोड़ा हमने पंचमुड़ा की नदी मिट्टी से चाक पर और हाथों से तैयार किया है।',
+    audioTranscriptHi: 'यह बांकुड़ा घोड़ा हमने पंचमुड़ा की नदी मिट्टी से चाक पर और हाथों से तैयार किया है।'
+  },
+  stonecraft: {
+    title: 'Handcrafted White Marble Inlay Floral Artifact',
+    titleHi: 'हस्तनिर्मित मकराना संगमरमर पच्चीकारी कलाकृति',
+    story: 'Delicate floral florets are engraved into fine Makrana marble with diamond chisels and embedded with polished semiprecious stones.',
+    storyHi: 'मकराना संगमरमर में तराशकर लापिस लाजुली और गोमेद जैसे कीमती पत्थरों को जड़कर बनाई गई ऐतिहासिक पच्चीकारी कला।',
+    materials: ['Makrana White Marble', 'Lapis Lazuli Gemstone', 'Malachite', 'Carnelian Inlay'],
+    tags: ['Marble Inlay', 'Pietra Dura', 'Agra Craft GI #52', 'Semiprecious Stones'],
+    priceBand: {
+      min: 2500,
+      max: 4800,
+      suggested: 3500,
+      rationale: 'Based on precision stone gemstone shaping, marble canal channelling, and master lapidary wages.',
+      rationaleHi: 'कीमती पत्थरों की बारीक घिसाई और संगमरमर में नक्काशी की कुशल मेहनत के आधार पर।'
+    },
+    audioTranscript: 'यह संगमरमर की थाली पर हमने असली लापिस और मैलाकाइट पत्थर जड़कर तैयार की है।',
+    audioTranscriptHi: 'यह संगमरमर की थाली पर हमने असली लापिस और मैलाकाइट पत्थर जड़कर तैयार की है।'
+  },
+  embroidery: {
+    title: 'Pure Muslin Hand-Embroidered Chikankari Heritage Fabric',
+    titleHi: 'पारंपरिक मलमल लखनवी चिकनकारी हस्त-कशीदाकारी वस्त्र',
+    story: 'Meticulously embroidered by women artisans in Lucknow utilizing 32 traditional stitches on mulmul fabric.',
+    storyHi: 'लखनऊ की महिला शिल्पियों द्वारा बकिया और फंदा जैसे ३२ प्रकार के पारंपरिक टांकों से मलमल पर उकेरी गई शाही कला।',
+    materials: ['Pure Mulmul Cotton', 'Resham Silk Floss', 'Metallic Badla Wire'],
+    tags: ['Lucknow Chikankari', 'GI Tagged #119', 'Hand Embroidery', 'Pure Mulmul'],
+    priceBand: {
+      min: 2200,
+      max: 4200,
+      suggested: 3100,
+      rationale: 'Based on 40+ hours of micro-needle hand stitches and Awadh artisan SHG wages.',
+      rationaleHi: '40 घंटे से अधिक की बारीक सुई की कढ़ाई और कारीगर महिला समूह के उचित पारिश्रमिक पर आधारित।'
+    },
+    audioTranscript: 'यह चिकनकारी हमने मलमल के कपड़े पर बारीक रेशम के धागों से सुई से हाथों द्वारा काढ़ी है।',
+    audioTranscriptHi: 'यह चिकनकारी हमने मलमल के कपड़े पर बारीक रेशम के धागों से सुई से हाथों द्वारा काढ़ी है।'
+  },
+  paper_mache: {
+    title: 'Handcrafted Kashmiri Papier-Mâché Floral Box',
+    titleHi: 'हस्तनिर्मित कश्मीरी पेपर मेशी पुष्प डिबिया',
+    story: 'Rooted in Persian traditions of Kashmir, molded from paper pulp and painted in gold leaf.',
+    storyHi: 'कागज की लुगदी से ढाला गया और असली सोने के वर्क तथा प्राकृतिक रंगों से चित्रित कश्मीरी पात्र।',
+    materials: ['Mashed Pulp Fiber', 'Rice Paste Adhesive', 'Natural Chalk Gesso', 'Gold Leaf'],
+    tags: ['Kashmir Papier Mache', 'GI Tag #81', 'Gold Foil', 'Hand Painted'],
+    priceBand: {
+      min: 1250,
+      max: 2250,
+      suggested: 1750,
+      rationale: 'Based on multi-layer pulp drying, stone-polishing, and fine Naqashi painting.',
+      rationaleHi: 'कागज की लुगदी को घिसने और बारीक सुनहरी नक्शीकारी के आधार पर।'
+    },
+    audioTranscript: 'यह डिबिया कश्मीरी पेपर मेशी से बनी है और इस पर असली सोने के वर्क से बेल-बूटे बनाए हैं।',
+    audioTranscriptHi: 'यह डिबिया कश्मीरी पेपर मेशी से बनी है और इस पर असली सोने के वर्क से बेल-बूटे बनाए हैं।'
+  },
+  glasscraft: {
+    title: 'Authentic Hand-Blown Luster Glass Lamp / Vessel',
+    titleHi: 'पारंपरिक हस्तनिर्मित फिरोज़ाबाद कांच दीप व पात्र',
+    story: 'Crafted using open furnace blowpipes manipulating molten silica at 1200°C without mechanical molds.',
+    storyHi: 'फिरोज़ाबाद के कांच शिल्पियों द्वारा १२00 डिग्री तापमान पर मुंह की फूंक और चिमटों से ढाला गया कांच।',
+    materials: ['Recycled Silica Glass', 'Natural Soda Ash', 'Cobalt Colorant'],
+    tags: ['Firozabad Glass', 'Hand Blown', 'Melted Silica', 'Artisan Glass'],
+    priceBand: {
+      min: 850,
+      max: 1650,
+      suggested: 1200,
+      rationale: 'Based on high-heat furnace fuel consumption, blowpipe dexterity, and annealing cycle.',
+      rationaleHi: 'भट्टी के तापमान और कारीगर की हाथ की फूंक कला के आधार पर।'
+    },
+    audioTranscript: 'यह कांच का गुलदस्ता हमने भट्टी में पिघलाकर फूंकनी से हाथ से तैयार किया है।',
+    audioTranscriptHi: 'यह कांच का गुलदस्ता हमने भट्टी में पिघलाकर फूंकनी से हाथ से तैयार किया है।'
+  },
+  carpets: {
+    title: 'Pure Bikaneri Wool Hand-Knotted Heritage Rug',
+    titleHi: 'प्रामाणिक बीकानेरी ऊन से बुना भदोही हस्तनिर्मित कालीन',
+    story: 'Woven on vertical pit looms with 120+ knots per square inch using vegetable-dyed highland wool.',
+    storyHi: 'भदोही की करघों पर हाथ से एक-एक गांठ बांधकर प्राकृतिक रंगों में रंगे शुद्ध ऊन से बुना गया कालीन।',
+    materials: ['Indigenous Bikaneri Wool', 'Handspun Cotton Warp', 'Vegetable Madder Dye'],
+    tags: ['Bhadohi Carpet', 'GI Tagged #128', 'Hand Knotted', 'Pure Wool'],
+    priceBand: {
+      min: 4500,
+      max: 9500,
+      suggested: 6800,
+      rationale: 'Calculated from 100,000+ hand-tied knots and master weaver daily wages.',
+      rationaleHi: 'लाखों हाथ की गांठों और कुशल बुनकर की मेहनत के आधार पर।'
+    },
+    audioTranscript: 'यह कालीन हमने भदोही में हाथ के करघे पर शुद्ध ऊनी धागों से एक-एक गांठ बांधकर बुना है।',
+    audioTranscriptHi: 'यह कालीन हमने भदोही में हाथ के करघे पर शुद्ध ऊनी धागों से एक-एक गांठ बांधकर बुना है।'
+  },
   other: {
     title: 'Traditional Indian Artisanal Craft Artifact',
     titleHi: 'पारंपरिक भारतीय हस्तशिल्प कलाकृति',
@@ -264,6 +366,12 @@ export async function analyzeProduct(
       basketry: 'https://images.unsplash.com/photo-1590402494682-cd3fb53b1f70?auto=format&fit=crop&w=800&q=80',
       jewelry: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=800&q=80',
       leather: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80',
+      terracotta: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80',
+      stonecraft: 'https://images.unsplash.com/photo-1599818816934-8c85770020bc?auto=format&fit=crop&w=800&q=80',
+      embroidery: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=800&q=80',
+      paper_mache: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80',
+      glasscraft: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=800&q=80',
+      carpets: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=800&q=80',
       other: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80',
     };
     imageSource = fallbackImgs[payload.category] || fallbackImgs.other;

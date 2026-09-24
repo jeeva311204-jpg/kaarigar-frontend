@@ -8,7 +8,7 @@ import { ContactModal } from '../../components/marketplace/ContactModal';
 import { Sparkles, Package, MapPin, Store } from 'lucide-react';
 
 export const MarketplaceBrowse: React.FC = () => {
-  const { t, isHindi } = useTranslation();
+  const { t, isHindi, language } = useTranslation();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,7 +91,14 @@ export const MarketplaceBrowse: React.FC = () => {
         <div className="relative z-10 max-w-xl space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-turmeric-500/20 text-turmeric-300 border border-turmeric-400/30 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>{isHindi ? '100% प्रामाणिक भारतीय हस्तकला' : 'Direct Artisan Heritage Platform'}</span>
+            <span>
+              {language === 'hi' ? '100% प्रामाणिक भारतीय हस्तकला मंच' :
+               language === 'ta' ? '100% நேரடி கைவினைஞர் பாரம்பரிய தளம்' :
+               language === 'te' ? '100% కళాకారుల ప్రత్యక్ష వేదిక' :
+               language === 'mr' ? '१००% अस्सल भारतीय हस्तकला मंच' :
+               language === 'bn' ? '১০০% খাঁটি ঐতিহ্যবাহী হস্তশিল্প প্ল্যাটফর্ম' :
+               '100% Direct Artisan Heritage Platform'}
+            </span>
           </div>
 
           <h1 className="font-serif text-2xl sm:text-4xl font-bold tracking-tight text-paper-50">
@@ -128,10 +135,20 @@ export const MarketplaceBrowse: React.FC = () => {
         <div className="bg-paper-100 border border-dashed border-paper-300 rounded-3xl p-12 text-center space-y-3">
           <Store className="w-12 h-12 text-stone-400 mx-auto" />
           <h3 className="font-serif text-lg font-bold text-indigo-950">
-            {isHindi ? 'कोई शिल्प नहीं मिला' : 'No authentic crafts matched your criteria'}
+            {language === 'hi' ? 'कोई शिल्प नहीं मिला' :
+             language === 'ta' ? 'பொருந்தும் கைவினை எதுவும் கிடைக்கவில்லை' :
+             language === 'te' ? 'చేతిపనులు ఏవీ కనుగొనబడలేదు' :
+             language === 'mr' ? 'कोणतीही हस्तकला आढळली नाही' :
+             language === 'bn' ? 'কোনো হস্তশিল্প পাওয়া যায়নি' :
+             'No authentic crafts matched your criteria'}
           </h3>
           <p className="text-xs text-stone-500">
-            {isHindi ? 'फ़िल्टर हटाकर दोबारा खोजें' : 'Try adjusting your search terms or clearing category filters.'}
+            {language === 'hi' ? 'फ़िल्टर हटाकर दोबारा खोजें या अन्य श्रेणी चुनें।' :
+             language === 'ta' ? 'தேடல் சொற்களை மாற்றி அல்லது பிற பிரிவைத் தேர்ந்தெடுக்கவும்.' :
+             language === 'te' ? 'శోధన పదాలను మార్చండి లేదా ఇతర విభాగాన్ని ఎంచుకోండి.' :
+             language === 'mr' ? 'शोध शब्द बदला किंवा अन्य प्रकार निवडा.' :
+             language === 'bn' ? 'অনুসন্ধানের শব্দ পরিবর্তন করুন বা অন্য বিভাগ নির্বাচন করুন।' :
+             'Try adjusting your search terms or clearing category filters.'}
           </p>
         </div>
       ) : (

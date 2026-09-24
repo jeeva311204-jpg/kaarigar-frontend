@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTranslation } from '../../i18n';
+import { useTranslation, LanguageCode } from '../../i18n';
 import { UserRole } from '../../types';
 import { 
   Sparkles, 
@@ -11,20 +11,31 @@ import {
   LayoutDashboard, 
   MessageSquare, 
   User, 
-  Wifi, 
-  WifiOff,
   Shield,
-  LogIn
+  LogIn,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const { role, setRole, currentUser } = useAuth();
-  const { language, setLanguage, t, isHindi } = useTranslation();
+  const { language, setLanguage, t, isHindi, currentLangMeta, languages } = useTranslation();
   const location = useLocation();
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'hi' : 'en');
-  };
+  // Close language dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
+        setIsLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const isCurrentPath = (path: string) => {
     return location.pathname === path;
@@ -96,16 +107,58 @@ export const Header: React.FC = () => {
           {/* Actions & Switchers */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Language Switcher */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-paper-300 bg-paper-50 hover:bg-paper-200 text-xs sm:text-sm font-semibold text-indigo-950 shadow-xs transition-colors cursor-pointer tap-target-accessible min-h-[40px]"
-              title="Toggle Language / भाषा बदलें"
-              aria-label="Toggle language"
-            >
-              <Globe className="w-4 h-4 text-terracotta-500" />
-              <span>{isHindi ? 'English' : 'हिंदी'}</span>
-            </button>
+            {/* Multi-Language Dropdown Selector (Tamil, Telugu, Hindi, English, Marathi, Bengali) */}
+            <div className="relative" ref={langDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-paper-300 bg-paper-50 hover:bg-paper-200 text-xs sm:text-sm font-semibold text-indigo-950 shadow-xs transition-colors cursor-pointer min-h-[38px]"
+                title="Select Language / भाषा चुनें"
+                aria-label="Select language"
+                aria-expanded={isLangOpen}
+              >
+                <Globe className="w-4 h-4 text-terracotta-500 shrink-0" />
+                <span className="font-medium">{currentLangMeta.nativeName}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-stone-500 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isLangOpen && (
+                <div className="absolute right-0 mt-2 w-48 py-1.5 bg-paper-50 border border-paper-300 rounded-2xl shadow-craft-lg z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-1.5 text-[11px] font-bold text-stone-400 uppercase tracking-wider border-b border-paper-200">
+                    {t('common.language')} / भाषा
+                  </div>
+                  {languages.map((lang) => {
+                    const isSelected = language === lang.code;
+                    return (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setIsLangOpen(false);
+                        }}
+                        className={`w-full px-3.5 py-2 text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-terracotta-50 text-terracotta-700 font-bold'
+                            : 'text-stone-700 hover:bg-paper-200 hover:text-indigo-950'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 text-[11px] font-bold text-terracotta-600 bg-paper-200 px-1 py-0.5 rounded text-center">
+                            {lang.shortLabel}
+                          </span>
+                          <div>
+                            <span className="text-xs font-semibold block leading-tight">{lang.nativeName}</span>
+                            <span className="text-[10px] text-stone-400 block">{lang.name}</span>
+                          </div>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-terracotta-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Role Demo Switcher Dropdown */}
             <div className="relative flex items-center bg-paper-200/90 border border-paper-300 rounded-xl p-1 shadow-xs">
@@ -133,7 +186,7 @@ export const Header: React.FC = () => {
             {/* Separate Login Pages Link */}
             <Link
               to="/auth"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-paper-300 bg-paper-50 hover:bg-paper-200 text-xs sm:text-sm font-semibold text-stone-700 hover:text-indigo-950 shadow-xs transition-colors cursor-pointer tap-target-accessible min-h-[40px]"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-paper-300 bg-paper-50 hover:bg-paper-200 text-xs sm:text-sm font-semibold text-stone-700 hover:text-indigo-950 shadow-xs transition-colors cursor-pointer tap-target-accessible min-h-[38px]"
               title={isHindi ? 'अलग-अलग लॉगिन पेज (कारीगर / खरीदार / एडमिन)' : 'Dedicated Login Pages (Artisan / Buyer / Admin)'}
             >
               <LogIn className="w-4 h-4 text-terracotta-600" />

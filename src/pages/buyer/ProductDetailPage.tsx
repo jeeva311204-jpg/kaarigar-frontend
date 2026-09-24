@@ -28,7 +28,7 @@ import {
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { t, isHindi } = useTranslation();
+  const { t, isHindi, language } = useTranslation();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -65,9 +65,9 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const title = isHindi && product.titleHi ? product.titleHi : product.title;
-  const description = isHindi && product.descriptionHi ? product.descriptionHi : product.description;
-  const culturalStory = isHindi && product.culturalStoryHi ? product.culturalStoryHi : product.culturalStory;
+  const title = (language !== 'en' && product.titleHi) ? product.titleHi : product.title;
+  const description = (language !== 'en' && product.descriptionHi) ? product.descriptionHi : product.description;
+  const culturalStory = (language !== 'en' && product.culturalStoryHi) ? product.culturalStoryHi : product.culturalStory;
 
   const isOwner = Boolean(
     currentUser && (currentUser.id === product.artisanId || currentUser.id === product.ownerId)

@@ -11,6 +11,7 @@ interface WizardStep1PhotoProps {
   imagePreview: string | null;
   onImageChange: (imgUrl: string, file?: File) => void;
   onAnalysisComplete?: (analysis: PhotoAnalysisDetails) => void;
+  onForceConfirmCraft?: () => void;
 }
 
 const CATEGORIES: { key: CraftCategory; labelKey: string; icon: string }[] = [
@@ -22,6 +23,13 @@ const CATEGORIES: { key: CraftCategory; labelKey: string; icon: string }[] = [
   { key: 'basketry', labelKey: 'categories.basketry', icon: '🧺' },
   { key: 'jewelry', labelKey: 'categories.jewelry', icon: '💍' },
   { key: 'leather', labelKey: 'categories.leather', icon: '🥿' },
+  { key: 'terracotta', labelKey: 'categories.terracotta', icon: '🧱' },
+  { key: 'stonecraft', labelKey: 'categories.stonecraft', icon: '🗿' },
+  { key: 'embroidery', labelKey: 'categories.embroidery', icon: '🪡' },
+  { key: 'paper_mache', labelKey: 'categories.paper_mache', icon: '🎭' },
+  { key: 'glasscraft', labelKey: 'categories.glasscraft', icon: '🔮' },
+  { key: 'carpets', labelKey: 'categories.carpets', icon: '🧶' },
+  { key: 'other', labelKey: 'categories.other', icon: '🪔' },
 ];
 
 // Sample craft images for immediate testing without taking photo
@@ -58,6 +66,30 @@ const SAMPLE_CRAFT_PREVIEWS: Record<CraftCategory, { name: string; url: string }
     name: 'Embroidered Rawhide Mojari',
     url: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=800&q=80'
   },
+  terracotta: {
+    name: 'Bankura Terracotta Horse & Pottery',
+    url: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=800&q=80'
+  },
+  stonecraft: {
+    name: 'Agra Marble Inlay Pietra Dura Tabletop',
+    url: 'https://images.unsplash.com/photo-1599818816934-8c85770020bc?auto=format&fit=crop&w=800&q=80'
+  },
+  embroidery: {
+    name: 'Lucknowi Chikankari Hand Embroidery',
+    url: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=800&q=80'
+  },
+  paper_mache: {
+    name: 'Kashmir Papier-Mâché Floral Box',
+    url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=800&q=80'
+  },
+  glasscraft: {
+    name: 'Firozabad Hand-Blown Glass Artifact',
+    url: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=800&q=80'
+  },
+  carpets: {
+    name: 'Bhadohi Hand-Knotted Heritage Rug',
+    url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=800&q=80'
+  },
   other: {
     name: 'Traditional Indian Craft Item',
     url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=800&q=80'
@@ -69,7 +101,8 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
   onSelectCategory,
   imagePreview,
   onImageChange,
-  onAnalysisComplete
+  onAnalysisComplete,
+  onForceConfirmCraft
 }) => {
   const { t, isHindi } = useTranslation();
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
@@ -111,6 +144,28 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
       isCancelled = true;
     };
   }, [imagePreview]);
+
+  const handleForceArtisanConfirmation = async () => {
+    if (!imagePreview) return;
+    setIsScanning(true);
+    try {
+      const res = await analyzeCraftPhoto(imagePreview, selectedCategory, undefined, true);
+      setAnalysis(res);
+      setIsScanning(false);
+      if (res.detectedCategory && res.detectedCategory !== selectedCategory) {
+        onSelectCategory(res.detectedCategory);
+      }
+      if (onAnalysisComplete) {
+        onAnalysisComplete(res);
+      }
+      if (onForceConfirmCraft) {
+        onForceConfirmCraft();
+      }
+    } catch (err) {
+      console.warn('AI artisan confirmation error:', err);
+      setIsScanning(false);
+    }
+  };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -355,6 +410,27 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
                     {isHindi ? 'गैलरी से चुनें' : 'Choose Gallery'}
                   </Button>
                 </div>
+
+                {/* Artisan Confirmation Override: Direct Materials & Price Detection */}
+                <div className="pt-2 border-t border-red-200">
+                  <button
+                    type="button"
+                    onClick={handleForceArtisanConfirmation}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 border border-emerald-400 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-200" />
+                    <span>
+                      {isHindi
+                        ? '✨ यह मेरा हस्तशिल्प है (कारीगर प्रमाणीकरण) → कच्चा माल एवं उचित मूल्य जांचें'
+                        : '✨ I Handcrafted This Product (Artisan Confirmation) → Detect Materials & Fair Price'}
+                    </span>
+                  </button>
+                  <p className="text-[11px] text-stone-600 text-center mt-1.5 font-medium leading-relaxed">
+                    {isHindi
+                      ? 'सिरेमिक/मिट्टी के बर्तन, वस्त्र या कलाकृति के लिए कच्चे माल, सामग्री और उचित बाज़ार मूल्य का विश्लेषण करें।'
+                      : 'Verify studio pottery, tableware, or handmade items to extract authentic materials & fair price.'}
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="bg-paper-200/80 border border-paper-300 rounded-2xl p-4 max-w-md mx-auto shadow-xs space-y-2.5">
@@ -413,15 +489,16 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
 
                   <div>
                     <span className="font-bold text-stone-900 block mb-1">
-                      Identified Raw Materials from Photo:
+                      {isHindi ? 'फ़ोटो से पहचाने गए कच्चे माल व घटक (सामग्री):' : 'Identified Raw Materials & Ingredients from Photo:'}
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {analysis.materials.map((mat) => (
                         <span
                           key={mat}
-                          className="px-2 py-0.5 rounded-md bg-paper-100 border border-paper-300 text-stone-800 text-[11px] font-medium"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-950 text-[11px] font-semibold flex items-center gap-1 shadow-2xs"
                         >
-                          {mat}
+                          <span>🌿</span>
+                          <span>{mat}</span>
                         </span>
                       ))}
                     </div>

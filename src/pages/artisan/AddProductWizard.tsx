@@ -12,11 +12,11 @@ import { VoiceTextStep } from '../../components/wizard/VoiceTextStep';
 import { WizardStep3Details } from '../../components/artisan/WizardStep3Details';
 import { ProcessingModal } from '../../components/artisan/ProcessingModal';
 import { InvalidPhotoModal } from '../../components/artisan/InvalidPhotoModal';
-import { PhotoAnalysisDetails } from '../../lib/aiVisionAnalyzer';
+import { PhotoAnalysisDetails, analyzeCraftPhoto } from '../../lib/aiVisionAnalyzer';
 import { ArrowLeft, ArrowRight, Save, Sparkles, Check } from 'lucide-react';
 
 export const AddProductWizard: React.FC = () => {
-  const { t, isHindi } = useTranslation();
+  const { t, isHindi, language } = useTranslation();
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -113,6 +113,39 @@ export const AddProductWizard: React.FC = () => {
         return;
       }
       setCurrentStep(3);
+    }
+  };
+
+  const handleConfirmArtisanCraft = async () => {
+    if (!imagePreview) return;
+    setIsInvalidModalOpen(false);
+    setIsProcessing(true);
+    setAiStage(2);
+    setAiStageMessage(
+      isHindi
+        ? 'कारीगर कच्चे माल, सामग्री और उचित मूल्य की जांच की जा रही है...'
+        : 'Detecting authentic raw materials, ingredients & fair market pricing...'
+    );
+    try {
+      const result = await analyzeCraftPhoto(imagePreview, category, undefined, true);
+      setPhotoAnalysis(result);
+      if (result.materials?.length) {
+        setSelectedMaterials((prev) => Array.from(new Set([...prev, ...result.materials])));
+      }
+      if (result.detectedCategory && result.detectedCategory !== category) {
+        setCategory(result.detectedCategory);
+      }
+      setIsProcessing(false);
+      setCurrentStep(1);
+      showToast({
+        type: 'success',
+        title: isHindi ? 'कारीगर शिल्प प्रमाणित' : 'Craft Authenticated',
+        message: isHindi
+          ? 'सामग्री और उचित मूल्य सफलतापूर्वक पहचाने गए।'
+          : 'Raw materials & fair price band detected successfully!'
+      });
+    } catch {
+      setIsProcessing(false);
     }
   };
 
@@ -323,11 +356,19 @@ export const AddProductWizard: React.FC = () => {
                 setSelectedMaterials((prev) => Array.from(new Set([...prev, ...analysis.materials])));
               }
             }}
+            onForceConfirmCraft={handleConfirmArtisanCraft}
           />
         )}
 
         {currentStep === 2 && (
           <VoiceTextStep
+            initialLanguage={
+              language === 'ta' ? 'ta-IN' :
+              language === 'te' ? 'te-IN' :
+              language === 'mr' ? 'mr-IN' :
+              language === 'bn' ? 'bn-IN' :
+              language === 'hi' ? 'hi-IN' : 'en-IN'
+            }
             value={voiceData}
             onChange={(data: any) => {
               setVoiceData(data);
@@ -397,6 +438,7 @@ export const AddProductWizard: React.FC = () => {
         detectedSubject={invalidModalData.detectedSubject}
         detectedNonCraftObject={invalidModalData.detectedNonCraftObject}
         detectedNonCraftObjectHi={invalidModalData.detectedNonCraftObjectHi}
+        onConfirmArtisanCraft={handleConfirmArtisanCraft}
       />
 
     </div>

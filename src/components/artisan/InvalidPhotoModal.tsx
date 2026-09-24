@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Camera, Image as ImageIcon, X, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Camera, Image as ImageIcon, X, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../i18n';
 import { Button } from '../common/Button';
 
@@ -7,6 +7,7 @@ interface InvalidPhotoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onRetake: () => void;
+  onConfirmArtisanCraft?: () => void;
   rejectionReason?: string;
   rejectionReasonHi?: string;
   detectedSubject?: string;
@@ -18,6 +19,7 @@ export const InvalidPhotoModal: React.FC<InvalidPhotoModalProps> = ({
   isOpen,
   onClose,
   onRetake,
+  onConfirmArtisanCraft,
   rejectionReason,
   rejectionReasonHi,
   detectedSubject,
@@ -127,19 +129,48 @@ export const InvalidPhotoModal: React.FC<InvalidPhotoModalProps> = ({
           </div>
         </div>
 
+        {/* Artisan Confirmation & Raw Materials Detection Override */}
+        {onConfirmArtisanCraft && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border-2 border-emerald-400 text-left space-y-2 shadow-xs">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+              <Sparkles className="w-4 h-4 text-emerald-600" />
+              <span>{isHindi ? 'कारीगर प्रमाणीकरण:' : 'Artisan Confirmation:'}</span>
+            </div>
+            <p className="text-[11px] text-emerald-900 leading-relaxed font-medium">
+              {isHindi
+                ? 'यदि यह आपका हस्तनिर्मित उत्पाद (सिरेमिक/मिट्टी के बर्तन, वस्त्र या शिल्प) है, तो इसे प्रमाणित करने, कच्चे माल व सामग्री की पहचान करने और उचित मूल्य निर्धारित करने के लिए नीचे क्लिक करें।'
+                : 'If this is your handcrafted item (studio ceramics, pottery tableware, or craft), click below to verify authentic raw materials, ingredients & fair market price.'}
+            </p>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => {
+                onClose();
+                onConfirmArtisanCraft();
+              }}
+              leftIcon={<Sparkles className="w-4 h-4 text-amber-200" />}
+              className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold border-none shadow-md text-xs sm:text-sm py-2.5"
+            >
+              {isHindi
+                ? '✨ यह मेरा हस्तशिल्प है (सामग्री एवं मूल्य जांचें)'
+                : '✨ I Handcrafted This Product (Detect Materials & Price)'}
+            </Button>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-2.5">
           <Button
-            variant="primary"
+            variant="outline"
             size="md"
             onClick={() => {
               onClose();
               onRetake();
             }}
             leftIcon={<Camera className="w-4 h-4" />}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-md"
+            className="w-full border-red-300 text-red-900 hover:bg-red-50 font-bold shadow-xs text-xs sm:text-sm"
           >
-            {isHindi ? 'नई शिल्प फोटो लें / अपलोड करें' : 'Upload Valid Craft Photo'}
+            {isHindi ? 'नई शिल्प फोटो लें / अपलोड करें' : 'Upload Another Photo'}
           </Button>
 
           <Button

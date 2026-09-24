@@ -17,7 +17,8 @@
     "verified": "Verified Artisan",
     "giTagged": "GI Certified",
     "pieces": "pieces",
-    "rupee": "₹"
+    "rupee": "₹",
+    "language": "Language"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -54,8 +55,8 @@
     "pressToRecord": "Press to Record Voice",
     "stopRecording": "Finish Recording",
     "recordingState": "Listening to your craft story...",
-    "detectedLanguage": "Linguistic Detection: Hindi (हिंदी)",
-    "useSampleAudio": "Try with Sample Voice Note (Hindi)",
+    "detectedLanguage": "Linguistic Detection: Active",
+    "useSampleAudio": "Try with Sample Voice Note",
     "audioTranscript": "Voice Transcription",
     "step3Title": "Step 3: Materials & Quantity",
     "step3Subtitle": "Detail the authentic materials and inventory available in your workshop",
@@ -66,9 +67,9 @@
   },
   "processing": {
     "modalTitle": "AI Craft Cataloging in Progress",
-    "modalSubtitle": "Gemini 1.5 Pro multimodal craft engine is analyzing your artifact",
+    "modalSubtitle": "Gemini Multimodal craft engine is analyzing your artifact",
     "stage1": "Enhancing craft photo lighting, contrast & surface textures...",
-    "stage2": "Transcribing regional voice note and translating to bilingual catalog copy...",
+    "stage2": "Transcribing regional voice note and translating to multilingual catalog copy...",
     "stage3": "Composing cultural heritage story and identifying GI craft tags...",
     "stage4": "Evaluating raw material inputs & computing fair market price band...",
     "almostDone": "Finalizing smart catalog recommendation..."
@@ -95,6 +96,7 @@
     "title": "Indian Heritage & Craft Showcase",
     "subtitle": "Directly purchase authentic handmade creations from master artisans across India.",
     "searchPlaceholder": "Search by craft, GI region, material or artisan name...",
+    "allCategories": "All Crafts",
     "filterCategory": "Craft Category",
     "artisanProvenance": "Craft Provenance",
     "fairPrice": "Fair Price Band",
@@ -143,11 +145,17 @@
     "pottery": "Blue Pottery & Ceramics",
     "textiles": "Handloom & Textiles",
     "woodwork": "Woodcraft & Carving",
-    "metal": "Dhokra & Bell Metal",
-    "painting": "Madhubani & Folk Art",
+    "metal": "Dhokra & Metalcraft",
+    "painting": "Folk Art & Paintings",
     "basketry": "Natural Fiber Basketry",
     "jewelry": "Tribal & Silver Jewelry",
     "leather": "Mojari & Leather Craft",
+    "terracotta": "Terracotta & Clay Craft",
+    "stonecraft": "Stone Carving & Inlay",
+    "embroidery": "Embroidery & Needlework",
+    "paper_mache": "Papier-Mâché & Puppetry",
+    "glasscraft": "Glasscraft & Bangles",
+    "carpets": "Hand-Knotted Carpets",
     "other": "Traditional Craft"
   }
 }

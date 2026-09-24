@@ -287,47 +287,50 @@ export async function inspectImagePixels(
         // DECISION LOGIC: HIGH-PRECISION RECOGNITION
         // ==========================================
 
-        // 1. JAIPUR BLUE POTTERY / CERAMIC
-        // Decisive blue ratio or blue + quartz white floral arabesque with low fiber
-        if ((blueRatio >= 0.07 || (blueRatio + whiteRatio >= 0.16)) && fiberRatio < 0.12) {
+        // 1. JAIPUR BLUE POTTERY / STUDIO CERAMIC TABLEWARE & PLATES
+        // Decisive blue ratio, blue + quartz white glazes, or ceramic tableware displayed on wooden shelves
+        if (
+          ((blueRatio >= 0.03 || (blueRatio + whiteRatio >= 0.10) || (woodRatio >= 0.08 && (blueRatio >= 0.02 || whiteRatio >= 0.08))) && fiberRatio < 0.25) ||
+          (fallbackCategory === 'pottery' && (blueRatio >= 0.02 || whiteRatio >= 0.06 || woodRatio >= 0.06))
+        ) {
           resolve({
             detectedCategory: 'pottery',
-            craftName: 'Jaipur Blue Pottery Glazed Floral Plate / Ceramic',
-            craftNameHi: 'जयपुर ब्लू पॉटरी नक्काशीदार पात्र',
+            craftName: 'Handcrafted Glazed Ceramic Studio Tableware Set / Plates',
+            craftNameHi: 'हस्तनिर्मित ग्लेज्ड सिरेमिक टेबलवेयर सेट / थाली',
             materials: [
-              'Quartz Stone Powder (क्वार्ट्ज चूर्ण)',
-              'Multani Mitti (Fuller’s Earth)',
-              'Cobalt Blue & Turquoise Oxides',
-              'Natural Borax & Lead-Free Glass Glaze',
-              'Katira Gond (Natural Plant Gum Binder)'
+              'Stoneware Clay / Kaolin (चिकनी मिट्टी/काओलिन)',
+              'Quartz & Silica Powder (क्वार्ट्ज चूर्ण)',
+              'Feldspar Mineral Flux (फेल्डस्पार)',
+              'Natural Cobalt Blue & Mineral Oxide Glaze (प्राकृतिक खनिज ऑक्साइड ग्लेज़)',
+              'High-Fire Ceramic Kiln Baking (1200°C+ भट्टी में पकाया गया)'
             ],
-            culturalStory: 'Meticulously shaped using non-clay quartz stone dough blended with Multani Mitti and plant resins. Hand-decorated with classic Persian arabesque floral motifs in rich cobalt blue and fired in low-temperature kilns for a brilliant luster.',
-            culturalStoryHi: 'क्वार्ट्ज पत्थर और मुल्तानी मिट्टी से बिना मिट्टी के बनाया गया प्रामाणिक पात्र। गहरे नीले कोबाल्ट रंगों और पारंपरिक फ़ारसी बूटियों से सजाया गया।',
-            state: 'Rajasthan (Jaipur)',
-            stateHi: 'राजस्थान (जयपुर)',
-            stateOrigin: 'Jaipur, Rajasthan — GI Tag #33',
+            culturalStory: 'Meticulously wheel-thrown and hand-shaped stoneware ceramic tableware, finished with rich mineral oxide glazes and high-temperature kiln firing for enduring artisanal beauty.',
+            culturalStoryHi: 'कुम्हार के चाक पर ढालकर और हाथ से तराशकर तैयार किया गया प्रामाणिक सिरेमिक शिल्प। प्राकृतिक खनिज ग्लेज़ और उच्च तापमान भट्टी में पकाया गया टिकाऊ पात्र।',
+            state: 'Rajasthan / Uttar Pradesh',
+            stateHi: 'राजस्थान / उत्तर प्रदेश',
+            stateOrigin: 'Jaipur Blue Pottery & Khurja Ceramic Craft Guild',
             giTagNumber: 'GI #33',
-            suggestedTitle: 'Handcrafted Jaipur Blue Pottery Heritage Floral Plate',
-            suggestedTitleHi: 'हस्तनिर्मित पारंपरिक जयपुर ब्लू पॉटरी पुष्प थाली',
+            suggestedTitle: 'Handcrafted Glazed Ceramic Studio Tableware Set / Plates',
+            suggestedTitleHi: 'हस्तनिर्मित ग्लेज्ड सिरेमिक टेबलवेयर सेट / थाली',
             priceBand: {
-              min: 950,
-              max: 1850,
-              suggested: 1350,
-              rationale: 'Based on 12 hours of artisan wheel molding, quartz pulverizing, delicate Persian freehand floral painting, and kiln fuel.',
+              min: 1100,
+              max: 2200,
+              suggested: 1650,
+              rationale: 'Based on stoneware clay purity, precision hand-thrown plate geometry, food-safe mineral glaze compounding, and fair artisan wage benchmarks.',
               breakdown: {
-                rawMaterialsCost: 340,
-                laborHours: 12,
-                estimatedLaborWage: 680,
-                craftFairMargin: 330,
-                clusterBenchmark: 'Jaipur Blue Pottery GI #33 Guild Benchmark'
+                rawMaterialsCost: 450,
+                laborHours: 14,
+                estimatedLaborWage: 800,
+                craftFairMargin: 400,
+                clusterBenchmark: 'Jaipur & Khurja Studio Ceramic Guild Benchmark'
               }
             },
-            tags: ['Blue Pottery', 'GI Certified #33', 'Jaipur Craft', 'Hand Painted', 'Glazed Ceramic', 'Heritage Floral'],
+            tags: ['Studio Pottery', 'Glazed Ceramic', 'Tableware', 'Handcrafted Plates', 'GI Certified #33', 'Food Safe'],
             confidenceScore: 0.98,
             visualAttributes: {
-              dominantColors: ['Deep Cobalt Blue', 'Quartz White', 'Turquoise Cyan'],
-              textureType: 'Smooth Wood-Kiln Glaze Finish',
-              detectedForm: 'Floral Ceramic Plate / Dish'
+              dominantColors: ['Deep Cobalt Blue', 'Quartz White', 'Turquoise Glaze'],
+              textureType: 'Smooth High-Fire Glaze Finish',
+              detectedForm: 'Artisan Ceramic Tableware Plates / Bowls'
             }
           });
           return;
@@ -871,6 +874,186 @@ function getDefaultResult(cat: CraftCategory): VisualInspectionResult {
         dominantColors: ['Tanned Rawhide Ochre', 'Natural Mustard Brown'],
         textureType: 'Stitched Botanical Leather',
         detectedForm: 'Leather Footwear'
+      }
+    },
+    terracotta: {
+      detectedCategory: 'terracotta',
+      craftName: 'Bankura Panchmura Terracotta Craft',
+      craftNameHi: 'बांकुड़ा पंचमुड़ा टेराकोटा शिल्प',
+      materials: ['Alluvial River Clay', 'Rice Husk Ash', 'Natural Red Ochre', 'Wood Kiln Ash'],
+      culturalStory: 'Molded by Kumbhakar artisans of Panchmura village using alluvial clay turned on wheels and sculpted by hand.',
+      culturalStoryHi: 'पंचमुड़ा के कुंभकार कारीगरों द्वारा नदी की मिट्टी से चाक पर गढ़ा गया प्रसिद्ध बांकुड़ा टेराकोटा शिल्प।',
+      suggestedTitle: 'Heritage Bankura Terracotta Long-Neck Horse & Figurine',
+      suggestedTitleHi: 'पारंपरिक बांकुड़ा टेराकोटा लंबा गर्दन अश्व शिल्प',
+      priceBand: {
+        min: 950,
+        max: 1850,
+        suggested: 1350,
+        rationale: 'Reflects 14 hours of manual sculpting, seasonal clay curing, and open-kiln firing.',
+        breakdown: {
+          rawMaterialsCost: 280,
+          laborHours: 14,
+          estimatedLaborWage: 700,
+          craftFairMargin: 370,
+          clusterBenchmark: 'Bankura Terracotta Guild GI #44 Standard'
+        }
+      },
+      tags: ['Bankura Horse', 'GI Tagged #44', 'Terracotta', 'Handcrafted Clay'],
+      confidenceScore: 0.94,
+      visualAttributes: {
+        dominantColors: ['Burnt Terracotta Red', 'Earthen Ochre'],
+        textureType: 'Fired Earthen Clay',
+        detectedForm: 'Terracotta Sculpture'
+      }
+    },
+    stonecraft: {
+      detectedCategory: 'stonecraft',
+      craftName: 'Agra Marble Inlay (Pietra Dura)',
+      craftNameHi: 'आगरा संगमरमर पच्चीकारी',
+      materials: ['Makrana White Marble', 'Lapis Lazuli Gemstone', 'Malachite', 'Carnelian Inlay'],
+      culturalStory: 'Delicate floral arabesques engraved into Makrana marble with diamond chisels and embedded with semiprecious stones.',
+      culturalStoryHi: 'मकराना संगमरमर में तराशकर कीमती पत्थरों को जड़कर बनाई गई ऐतिहासिक पच्चीकारी कला।',
+      suggestedTitle: 'Handcrafted White Marble Inlay Floral Artifact',
+      suggestedTitleHi: 'हस्तनिर्मित मकराना संगमरमर पच्चीकारी कलाकृति',
+      priceBand: {
+        min: 2500,
+        max: 4800,
+        suggested: 3500,
+        rationale: 'Based on precision stone gemstone shaping and master lapidary wages.',
+        breakdown: {
+          rawMaterialsCost: 1200,
+          laborHours: 24,
+          estimatedLaborWage: 1600,
+          craftFairMargin: 700,
+          clusterBenchmark: 'Agra Marble Lapidary Guild Benchmark (GI #52)'
+        }
+      },
+      tags: ['Marble Inlay', 'Pietra Dura', 'Agra Craft GI #52', 'Semiprecious Stones'],
+      confidenceScore: 0.93,
+      visualAttributes: {
+        dominantColors: ['Polished White Marble', 'Lapis Blue', 'Malachite Green'],
+        textureType: 'Mirror Polished Marble with Stone Inlay',
+        detectedForm: 'Inlay Plate / Box'
+      }
+    },
+    embroidery: {
+      detectedCategory: 'embroidery',
+      craftName: 'Lucknowi Chikankari & Zardozi',
+      craftNameHi: 'लखनवी चिकनकारी एवं जरदोजी',
+      materials: ['Pure Mulmul Cotton', 'Resham Silk Floss', 'Metallic Badla Wire'],
+      culturalStory: 'Meticulously embroidered by women artisans in Lucknow utilizing 32 traditional stitches on mulmul fabric.',
+      culturalStoryHi: 'लखनऊ की महिला शिल्पियों द्वारा बकिया और फंदा जैसे टांकों से मलमल पर उकेरी गई महीन चिकनकारी।',
+      suggestedTitle: 'Pure Muslin Hand-Embroidered Chikankari Heritage Fabric',
+      suggestedTitleHi: 'पारंपरिक मलमल लखनवी चिकनकारी हस्त-कशीदाकारी वस्त्र',
+      priceBand: {
+        min: 2200,
+        max: 4200,
+        suggested: 3100,
+        rationale: 'Based on 40+ hours of micro-needle hand stitches and Awadh artisan SHG wages.',
+        breakdown: {
+          rawMaterialsCost: 850,
+          laborHours: 35,
+          estimatedLaborWage: 1750,
+          craftFairMargin: 500,
+          clusterBenchmark: 'Lucknow Chikankari SHG Cooperative Rate'
+        }
+      },
+      tags: ['Lucknow Chikankari', 'GI Tagged #119', 'Hand Embroidery', 'Pure Mulmul'],
+      confidenceScore: 0.95,
+      visualAttributes: {
+        dominantColors: ['Ivory White', 'Pastel Flora', 'Silver Thread'],
+        textureType: 'Delicate Needlework Shadow-Stitch',
+        detectedForm: 'Embroidered Textile'
+      }
+    },
+    paper_mache: {
+      detectedCategory: 'paper_mache',
+      craftName: 'Kashmir Papier-Mâché Art',
+      craftNameHi: 'कश्मीर पेपर मेशी कला',
+      materials: ['Mashed Pulp Fiber', 'Rice Paste Adhesive', 'Natural Chalk Gesso', 'Gold Leaf'],
+      culturalStory: 'Rooted in Persian traditions of Kashmir, molded from paper pulp and painted in gold leaf.',
+      culturalStoryHi: 'कागज की लुगदी से ढाला गया और असली सोने के वर्क तथा प्राकृतिक रंगों से चित्रित कश्मीरी पात्र।',
+      suggestedTitle: 'Handcrafted Kashmiri Papier-Mâché Floral Box',
+      suggestedTitleHi: 'हस्तनिर्मित कश्मीरी पेपर मेशी पुष्प डिबिया',
+      priceBand: {
+        min: 1250,
+        max: 2250,
+        suggested: 1750,
+        rationale: 'Based on multi-layer pulp drying, stone-polishing, and fine Naqashi painting.',
+        breakdown: {
+          rawMaterialsCost: 380,
+          laborHours: 15,
+          estimatedLaborWage: 950,
+          craftFairMargin: 420,
+          clusterBenchmark: 'Kashmir Handicrafts Development Guild Standard'
+        }
+      },
+      tags: ['Kashmir Papier Mache', 'GI Tag #81', 'Gold Foil', 'Hand Painted'],
+      confidenceScore: 0.94,
+      visualAttributes: {
+        dominantColors: ['Lacquered Black', 'Imperial Gold', 'Crimson Floral'],
+        textureType: 'Gloss Lacquered Painted Pulp',
+        detectedForm: 'Papier-Mâché Vessel'
+      }
+    },
+    glasscraft: {
+      detectedCategory: 'glasscraft',
+      craftName: 'Firozabad Hand-Blown Glasscraft',
+      craftNameHi: 'फिरोज़ाबाद हस्तनिर्मित कांच शिल्प',
+      materials: ['Recycled Silica Glass', 'Natural Soda Ash', 'Cobalt Colorant'],
+      culturalStory: 'Crafted using open furnace blowpipes manipulating molten silica at 1200°C without mechanical molds.',
+      culturalStoryHi: 'फिरोज़ाबाद के कांच शिल्पियों द्वारा १२00 डिग्री तापमान पर मुंह की फूंक और चिमटों से ढाला गया कांच।',
+      suggestedTitle: 'Authentic Hand-Blown Luster Glass Lamp / Vessel',
+      suggestedTitleHi: 'पारंपरिक हस्तनिर्मित फिरोज़ाबाद कांच दीप व पात्र',
+      priceBand: {
+        min: 850,
+        max: 1650,
+        suggested: 1200,
+        rationale: 'Based on high-heat furnace fuel consumption, blowpipe dexterity, and annealing cycle.',
+        breakdown: {
+          rawMaterialsCost: 260,
+          laborHours: 8,
+          estimatedLaborWage: 640,
+          craftFairMargin: 300,
+          clusterBenchmark: 'Firozabad Glass Artisans Welfare Association'
+        }
+      },
+      tags: ['Firozabad Glass', 'Hand Blown', 'Melted Silica', 'Artisan Glass'],
+      confidenceScore: 0.93,
+      visualAttributes: {
+        dominantColors: ['Iridescent Amber', 'Cobalt Blue', 'Clear Silica'],
+        textureType: 'Smooth Blown Glass Surface',
+        detectedForm: 'Hand-Blown Glass Artifact'
+      }
+    },
+    carpets: {
+      detectedCategory: 'carpets',
+      craftName: 'Bhadohi Hand-Knotted Heritage Carpet',
+      craftNameHi: 'भदोही हस्तनिर्मित ऊनी कालीन',
+      materials: ['Indigenous Bikaneri Wool', 'Handspun Cotton Warp', 'Vegetable Madder Dye'],
+      culturalStory: 'Woven on vertical pit looms with 120+ knots per square inch using vegetable-dyed highland wool.',
+      culturalStoryHi: 'भदोही की करघों पर हाथ से एक-एक गांठ बांधकर प्राकृतिक रंगों में रंगे शुद्ध ऊन से बुना गया कालीन।',
+      suggestedTitle: 'Pure Bikaneri Wool Hand-Knotted Heritage Rug',
+      suggestedTitleHi: 'प्रामाणिक बीकानेरी ऊन से बुना भदोही हस्तनिर्मित कालीन',
+      priceBand: {
+        min: 4500,
+        max: 9500,
+        suggested: 6800,
+        rationale: 'Calculated from 100,000+ hand-tied knots and master weaver daily wages.',
+        breakdown: {
+          rawMaterialsCost: 1900,
+          laborHours: 50,
+          estimatedLaborWage: 3800,
+          craftFairMargin: 1100,
+          clusterBenchmark: 'All India Carpet Manufacturers’ Association (AICMA) GI #128'
+        }
+      },
+      tags: ['Bhadohi Carpet', 'GI Tagged #128', 'Hand Knotted', 'Pure Wool'],
+      confidenceScore: 0.95,
+      visualAttributes: {
+        dominantColors: ['Madder Crimson', 'Indigo Blue', 'Ivory Wool'],
+        textureType: 'Dense Hand-Tied Wool Pile',
+        detectedForm: 'Knotted Rug / Textile'
       }
     },
     other: {

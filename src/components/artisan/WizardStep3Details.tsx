@@ -15,7 +15,15 @@ interface WizardStep3DetailsProps {
 }
 
 const COMMON_MATERIALS: Record<CraftCategory, string[]> = {
-  pottery: ['Quartz Stone Powder', 'Multani Mitti (Fuller’s Earth)', 'Cobalt Blue Oxide', 'Natural Borax Glaze', 'Copper Oxide'],
+  pottery: [
+    'Stoneware Clay / Kaolin (चिकनी मिट्टी)',
+    'Quartz & Silica Powder (क्वार्ट्ज चूर्ण)',
+    'Feldspar Mineral Flux (फेल्डस्पार)',
+    'Natural Mineral Oxide Glaze (प्राकृतिक खनिज ग्लेज़)',
+    'Cobalt Blue & Turquoise Oxides',
+    'High-Fire Kiln Baking (1200°C+ भट्टी)',
+    'Multani Mitti (Fuller’s Earth)'
+  ],
   metal: ['Bell Metal (Kansa)', 'Recycled Brass', 'Natural Beeswax', 'River Bed Mud', 'Charcoal Fuel'],
   textiles: ['Pure Mulberry Silk', 'Tested Metallic Zari', 'Organic Kala Cotton', 'Natural Indigo Dye', 'Vegetable Mordant'],
   painting: ['Handmade Bamboo Paper', 'Lamp Soot Ink', 'Turmeric Ochre', 'Indigo Leaf Extract', 'Cow Dung Wash'],
@@ -23,6 +31,18 @@ const COMMON_MATERIALS: Record<CraftCategory, string[]> = {
   basketry: ['Wild Sikki Golden Grass', 'Munj Reed', 'Natural Madder Root Dye', 'Palm Leaves'],
   jewelry: ['925 Sterling Silver', 'Hand-Twisted Wire', 'Natural Borax Flux', 'Agate Stone'],
   leather: ['Naturally Tanned Rawhide', 'Silk Dabka Thread', 'Cotton Twine', 'Acacia Bark Tanning'],
+  terracotta: [
+    'Alluvial River Clay (जलोढ़ मिट्टी)',
+    'Rice Husk Ash (धान की भूसी की राख)',
+    'Natural Red Ochre (गेरू)',
+    'Wood Kiln Ash (काष्ठ भट्टी)',
+    'Sand Core & Natural Silt'
+  ],
+  stonecraft: ['Makrana White Marble', 'Soapstone (Steatite)', 'Lapis Lazuli Inlay', 'Malachite', 'Corundum Powder'],
+  embroidery: ['Pure Mulmul Cotton', 'Resham Silk Floss', 'Metallic Badla Wire', 'Mukaish Sequins', 'Tussar Silk'],
+  paper_mache: ['Mashed Pulp Fiber', 'Rice Paste Adhesive', 'Natural Chalk Powder (Gesso)', 'Gold Foil Leaf', 'Kashmir Willow'],
+  glasscraft: ['Recycled Silica Glass', 'Natural Soda Ash', 'Metallic Copper Flakes', 'Cobalt Colorant', 'Annealing Sand'],
+  carpets: ['Indigenous Bikaneri Wool', 'Handspun Cotton Warp', 'Vegetable Madder Dye', 'Walnut Bark Tint', 'Raw Silk Weft'],
   other: ['Natural Clay', 'Terracotta Earth', 'Organic Dyes', 'Handspun Yarn']
 };
 

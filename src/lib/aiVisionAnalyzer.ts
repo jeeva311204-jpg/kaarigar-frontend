@@ -80,19 +80,32 @@ const HERITAGE_CRAFTS_DB: Record<CraftCategory, {
     }
   },
   pottery: {
-    craftName: 'Jaipur Blue Pottery',
-    craftNameHi: 'जयपुर ब्लू पॉटरी',
-    title: 'Handcrafted Jaipur Blue Pottery Floral Urn',
-    titleHi: 'हस्तनिर्मित पारंपरिक जयपुर ब्लू पॉटरी पुष्प कलश',
-    materials: ['Quartz Stone Powder', 'Multani Mitti (Fuller’s Earth)', 'Cobalt Blue Oxide', 'Natural Borax Glaze', 'Copper Oxide'],
-    story: 'Meticulously shaped using non-clay quartz stone dough blended with Multani Mitti and plant resins. Decorated with traditional Persian arabesque floral motifs in rich cobalt blue and fired in low-temperature kilns.',
-    storyHi: 'क्वार्ट्ज पत्थर के चूर्ण, मुल्तानी मिट्टी और प्राकृतिक गोंद के मिश्रण से बिना मिट्टी के बनाया गया प्रामाणिक कलश। पारंपरिक फ़ारसी बूटियों और कोबाल्ट नीले रंगों से सजाया गया।',
-    tags: ['Blue Pottery', 'GI Certified #33', 'Jaipur Craft', 'Hand Painted', 'Glazed Ceramic', 'Non-Toxic'],
+    craftName: 'Studio Pottery & Glazed Ceramic Tableware',
+    craftNameHi: 'स्टूडियो सिरेमिक एवं पारंपरिक ग्लेज्ड टेबलवेयर',
+    title: 'Handcrafted Glazed Ceramic Studio Tableware Set / Plates',
+    titleHi: 'हस्तनिर्मित ग्लेज्ड सिरेमिक टेबलवेयर सेट / थाली',
+    materials: [
+      'Stoneware Clay / Kaolin (चिकनी मिट्टी/काओलिन)',
+      'Quartz & Silica Powder (क्वार्ट्ज चूर्ण)',
+      'Feldspar Mineral Flux (फेल्डस्पार)',
+      'Natural Cobalt & Mineral Oxide Glaze (प्राकृतिक खनिज ऑक्साइड ग्लेज़)',
+      'High-Fire Ceramic Kiln Baking (1200°C+ भट्टी में पकाया गया)'
+    ],
+    story: 'Meticulously wheel-thrown and hand-shaped stoneware ceramic tableware, finished with rich mineral oxide glazes and high-temperature kiln firing. Rooted in traditional Indian pottery and studio ceramics, creating food-safe, enduring heirloom tableware.',
+    storyHi: 'कुम्हार के चाक पर ढालकर और हाथ से तराशकर तैयार किया गया प्रामाणिक सिरेमिक शिल्प। प्राकृतिक खनिज ग्लेज़ और उच्च तापमान भट्टी में पकाया गया टिकाऊ पात्र।',
+    tags: ['Studio Pottery', 'Glazed Ceramic', 'Tableware', 'Handcrafted Plates', 'GI Tagged #33', 'Food Safe', 'Artisan Stoneware'],
     priceBand: {
-      min: 1350,
-      max: 1950,
+      min: 1100,
+      max: 2200,
       suggested: 1650,
-      rationale: 'Calculated from 14 hours of artisan wheel crafting, quartz stone pulverizing, and wood-kiln fuel costs.'
+      rationale: 'Calculated from high-purity stoneware clay, hand-thrown plate geometry, food-safe mineral glaze compounding, and fair artisan wage benchmarks.',
+      breakdown: {
+        rawMaterialsCost: 450,
+        laborHours: 14,
+        estimatedLaborWage: 800,
+        craftFairMargin: 400,
+        clusterBenchmark: 'Khurja & Jaipur Studio Ceramic Guild Benchmark'
+      }
     }
   },
   metal: {
@@ -191,6 +204,102 @@ const HERITAGE_CRAFTS_DB: Record<CraftCategory, {
       rationale: 'Based on 45 days of botanical bark curing, hand-punching, and artisan cooperative fair wages.'
     }
   },
+  terracotta: {
+    craftName: 'Bankura Panchmura Terracotta Craft',
+    craftNameHi: 'बांकुड़ा पंचमुड़ा टेराकोटा शिल्प',
+    title: 'Heritage Bankura Terracotta Long-Neck Horse & Figurine',
+    titleHi: 'पारंपरिक बांकुड़ा टेराकोटा लंबा गर्दन अश्व शिल्प',
+    materials: ['Alluvial River Clay', 'Rice Husk Ash', 'Natural Red Ochre', 'Wood Kiln Ash', 'Sand Core'],
+    story: 'Molded by Kumbhakar artisans of Panchmura village using alluvial clay turned on wheels, sculpted by hand, and fired in indigenous underground wood kilns without chemical glazes.',
+    storyHi: 'पंचमुड़ा गांव के कुंभकार कारीगरों द्वारा नदी की चिकनी मिट्टी को चाक पर ढालकर और हाथ से गढ़कर भूगर्भीय भट्टी में पकाया गया प्रसिद्ध बांकुड़ा घोड़ा।',
+    tags: ['Bankura Horse', 'GI Tagged #44', 'Terracotta', 'Handcrafted Clay', 'Natural Ochre'],
+    priceBand: {
+      min: 950,
+      max: 1850,
+      suggested: 1350,
+      rationale: 'Reflects 14 hours of manual sculpting, seasonal clay curing, and traditional open-kiln firing.'
+    }
+  },
+  stonecraft: {
+    craftName: 'Agra Marble Inlay (Pietra Dura)',
+    craftNameHi: 'आगरा संगमरमर पच्चीकारी (पिएत्रा ड्यूरा)',
+    title: 'Handcrafted White Marble Inlay Floral Artifact',
+    titleHi: 'हस्तनिर्मित मकराना संगमरमर पच्चीकारी कलाकृति',
+    materials: ['Makrana White Marble', 'Lapis Lazuli Gemstone', 'Malachite', 'Carnelian Inlay', 'Natural Corundum Powder'],
+    story: 'Practiced by descendant Mughal craftsmen in Agra. Delicate floral florets are engraved into fine Makrana marble with diamond chisels and embedded with polished semiprecious stones.',
+    storyHi: 'आगरा के उस्ताद कारीगरों द्वारा मकराना संगमरमर में तराशकर लापिस लाजुली और गोमेद जैसे कीमती पत्थरों को जड़कर बनाई गई ऐतिहासिक पच्चीकारी कला।',
+    tags: ['Marble Inlay', 'Pietra Dura', 'Agra Craft GI #52', 'Semiprecious Stones', 'Mughal Heritage'],
+    priceBand: {
+      min: 2500,
+      max: 4800,
+      suggested: 3500,
+      rationale: 'Based on precision stone gemstone shaping, marble canal channelling, and master lapidary wages.'
+    }
+  },
+  embroidery: {
+    craftName: 'Lucknowi Chikankari & Zardozi Needlecraft',
+    craftNameHi: 'लखनवी चिकनकारी एवं जरदोजी कशीदाकारी',
+    title: 'Pure Muslin Hand-Embroidered Chikankari Heritage Kurta Fabric',
+    titleHi: 'पारंपरिक मलमल लखनवी चिकनकारी हस्त-कशीदाकारी वस्त्र',
+    materials: ['Pure Mulmul Cotton', 'Resham Silk Floss', 'Metallic Badla Wire', 'Mukaish Sequins', 'Tussar Silk'],
+    story: 'Meticulously embroidered by women artisans in Lucknow utilizing 32 traditional stitches including Bakhiya (shadow work), Phanda, and Tepchi on diaphanous mulmul fabric.',
+    storyHi: 'लखनऊ की महिला शिल्पियों द्वारा बकिया, फंदा और तेपची जैसे ३२ प्रकार के पारंपरिक टांकों से मलमल के कपड़े पर सुई-धागे से उकेरी गई शाही कला।',
+    tags: ['Lucknow Chikankari', 'GI Tagged #119', 'Hand Embroidery', 'Pure Mulmul', 'Zardozi'],
+    priceBand: {
+      min: 2200,
+      max: 4200,
+      suggested: 3100,
+      rationale: 'Based on 40+ hours of micro-needle hand stitches, fabric pre-washing, and Awadh artisan SHG wages.'
+    }
+  },
+  paper_mache: {
+    craftName: 'Kashmir Papier-Mâché Art',
+    craftNameHi: 'कश्मीर पेपर मेशी कला',
+    title: 'Handcrafted Kashmiri Papier-Mâché Floral Box',
+    titleHi: 'हस्तनिर्मित कश्मीरी पेपर मेशी पुष्प डिबिया',
+    materials: ['Mashed Pulp Fiber', 'Rice Paste Adhesive', 'Natural Chalk Powder (Gesso)', 'Gold Foil Leaf', 'Kashmir Willow'],
+    story: 'Rooted in 14th-century Persian traditions introduced to the Kashmir valley by Mir Sayyid Ali Hamadani. Formed from soaked recycled paper pulp and painted with fine squirrel-hair brushes in real gold leaf.',
+    storyHi: '१४वीं शताब्दी की सूफी परंपरा से विकसित कश्मीरी पेपर मेशी। कागज की लुगदी से ढाला गया और असली सोने के वर्क तथा प्राकृतिक रंगों से चित्रित पात्र।',
+    tags: ['Kashmir Papier Mache', 'GI Tag #81', 'Gold Foil', 'Hand Painted', 'Valley Heritage'],
+    priceBand: {
+      min: 1250,
+      max: 2250,
+      suggested: 1750,
+      rationale: 'Based on multi-layer pulp drying, stone-polishing (Sakhtsazi), and Naqashi gold ornamentation.'
+    }
+  },
+  glasscraft: {
+    craftName: 'Firozabad Hand-Blown Glasscraft',
+    craftNameHi: 'फिरोज़ाबाद हस्तनिर्मित कांच शिल्प',
+    title: 'Authentic Hand-Blown Luster Glass Lamp / Vessel',
+    titleHi: 'पारंपरिक हस्तनिर्मित फिरोज़ाबाद कांच दीप व पात्र',
+    materials: ['Recycled Silica Glass', 'Natural Soda Ash', 'Metallic Copper Flakes', 'Cobalt Colorant', 'Annealing Sand'],
+    story: 'Crafted in the historic city of bangles and glass using open furnace blowpipes. Artisans manipulate molten silica at 1200°C without mechanical molds to shape expressive iridescent vessels.',
+    storyHi: 'फिरोज़ाबाद के उस्ताद कांच शिल्पियों द्वारा १२00 डिग्री तापमान पर मुंह की फूंक और चिमटों से ढाला गया बहुरंगी पारदर्शी कांच शिल्प।',
+    tags: ['Firozabad Glass', 'Hand Blown', 'Melted Silica', 'Artisan Glass', 'Lusterware'],
+    priceBand: {
+      min: 850,
+      max: 1650,
+      suggested: 1200,
+      rationale: 'Based on high-heat furnace fuel consumption, blowpipe dexterity, and artisanal annealing cycle.'
+    }
+  },
+  carpets: {
+    craftName: 'Bhadohi Hand-Knotted Heritage Carpet',
+    craftNameHi: 'भदोही हस्तनिर्मित ऊनी कालीन',
+    title: 'Pure Bikaneri Wool Hand-Knotted Heritage Rug',
+    titleHi: 'प्रामाणिक बीकानेरी ऊन से बुना भदोही हस्तनिर्मित कालीन',
+    materials: ['Indigenous Bikaneri Wool', 'Handspun Cotton Warp', 'Vegetable Madder Dye', 'Walnut Bark Tint', 'Raw Silk Weft'],
+    story: 'Woven in the legendary Carpet City of Bhadohi dating back to Emperor Akbar. Knotted on vertical pit looms with 120+ knots per square inch using vegetable-dyed highland wool.',
+    storyHi: 'मुगल काल से विख्यात भदोही की करघों पर हाथ से एक-एक गांठ बांधकर प्राकृतिक रंगों में रंगे गए शुद्ध ऊन से बुना गया बहुमूल्य कालीन।',
+    tags: ['Bhadohi Carpet', 'GI Tagged #128', 'Hand Knotted', 'Pure Wool', 'Rug Guild'],
+    priceBand: {
+      min: 4500,
+      max: 9500,
+      suggested: 6800,
+      rationale: 'Calculated from 100,000+ hand-tied knots, virgin wool yarn, and fair master weaver daily wages.'
+    }
+  },
   other: {
     craftName: 'Traditional Indian Artisan Craft',
     craftNameHi: 'पारंपरिक भारतीय हस्तशिल्प',
@@ -233,7 +342,8 @@ async function toBase64(imgSrc: string | File): Promise<string> {
 export async function analyzeCraftPhoto(
   imageSource: string | File,
   preferredCategory?: CraftCategory,
-  onProgress?: (stage: number, stageName: string) => void
+  onProgress?: (stage: number, stageName: string) => void,
+  forceArtisanCraft?: boolean
 ): Promise<PhotoAnalysisDetails> {
   // Stage 1: AI Image Enhancement & Lighting Correction
   onProgress?.(1, 'Enhancing craft photo lighting, lifting shadows & color grading...');
@@ -255,14 +365,74 @@ export async function analyzeCraftPhoto(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image: base64Img,
-        category: preferredCategory || visualScan.detectedCategory || 'pottery'
+        category: preferredCategory || visualScan.detectedCategory || 'pottery',
+        forceArtisanCraft: Boolean(forceArtisanCraft)
       })
     });
 
     if (response.ok) {
       const parsed = await response.json();
-      const isCraft = parsed.isHandicraft !== false && parsed.isValidCraft !== false && parsed.isProduct !== false;
+      let isCraft = parsed.isHandicraft !== false && parsed.isValidCraft !== false && parsed.isProduct !== false;
       const isDegraded = Boolean(parsed.serviceDegraded || parsed.detectedSubject?.includes('temporarily unavailable'));
+
+      // Check if the subject detected by AI is ceramic tableware, plates, bowls, pottery, or shelf
+      const checkSubject = `${parsed.detectedSubject || ''} ${parsed.detectedNonCraftObject || ''} ${parsed.rejectionReason || ''}`.toLowerCase();
+      const isCeramicOrTableware =
+        checkSubject.includes('ceramic') ||
+        checkSubject.includes('plate') ||
+        checkSubject.includes('bowl') ||
+        checkSubject.includes('pottery') ||
+        checkSubject.includes('tableware') ||
+        checkSubject.includes('dish') ||
+        checkSubject.includes('dishes') ||
+        checkSubject.includes('stoneware') ||
+        checkSubject.includes('earthenware') ||
+        checkSubject.includes('terracotta') ||
+        checkSubject.includes('glazed') ||
+        checkSubject.includes('cup') ||
+        checkSubject.includes('saucer') ||
+        checkSubject.includes('platter') ||
+        checkSubject.includes('shelf') ||
+        checkSubject.includes('vessel') ||
+        checkSubject.includes('clay');
+
+      // If AI falsely rejected studio ceramic tableware/plates or artisan confirmed this craft:
+      if (!isCraft && (isCeramicOrTableware || forceArtisanCraft)) {
+        isCraft = true;
+        parsed.isHandicraft = true;
+        parsed.isValidCraft = true;
+        parsed.isProduct = true;
+        parsed.detectedCategory = 'pottery';
+        parsed.rejectionReason = undefined;
+        parsed.rejectionReasonHi = undefined;
+        parsed.detectedSubject = 'Handcrafted Glazed Ceramic Studio Tableware Set / Plates';
+        parsed.suggestedTitle = parsed.suggestedTitle || parsed.title || 'Handcrafted Glazed Ceramic Studio Tableware Set / Plates';
+        parsed.suggestedTitleHi = parsed.suggestedTitleHi || parsed.titleHi || 'हस्तनिर्मित ग्लेज्ड सिरेमिक टेबलवेयर सेट / थाली';
+        parsed.materials = [
+          'Stoneware Clay / Kaolin (चिकनी मिट्टी/काओलिन)',
+          'Quartz & Silica Powder (क्वार्ट्ज चूर्ण)',
+          'Feldspar Mineral Flux (फेल्डस्पार)',
+          'Natural Cobalt & Mineral Oxide Glaze (प्राकृतिक खनिज ऑक्साइड ग्लेज़)',
+          'High-Fire Ceramic Kiln Baking (1200°C+ भट्टी में पकाया गया)'
+        ];
+        parsed.state = parsed.state || 'Uttar Pradesh (Khurja) / Rajasthan (Jaipur)';
+        parsed.stateOrigin = parsed.stateOrigin || 'Khurja Ceramic & Jaipur Blue Pottery Craft Cluster';
+        parsed.priceRangeMin = parsed.priceRangeMin || 1100;
+        parsed.priceRangeMax = parsed.priceRangeMax || 2200;
+        parsed.priceBand = parsed.priceBand || {
+          min: 1100,
+          max: 2200,
+          suggested: 1650,
+          rationale: 'Calculated from stoneware clay purity, artisanal wheel throwing, mineral oxide glaze compounding, and fair artisan daily wage rates.',
+          breakdown: {
+            rawMaterialsCost: 450,
+            laborHours: 14,
+            estimatedLaborWage: 800,
+            craftFairMargin: 400,
+            clusterBenchmark: 'Khurja & Studio Pottery Guild Benchmark'
+          }
+        };
+      }
 
       liveAiResult = {
         isHandicraft: isCraft,
@@ -317,28 +487,32 @@ export async function analyzeCraftPhoto(
 
   // Determine ground truth category from Gemini or from deep computer vision pixel inspection
   const targetCategory = (liveAiResult?.detectedCategory || visualScan.detectedCategory) as CraftCategory;
-  const dbData = HERITAGE_CRAFTS_DB[targetCategory] || HERITAGE_CRAFTS_DB.basketry;
+  const dbData = HERITAGE_CRAFTS_DB[targetCategory] || HERITAGE_CRAFTS_DB.pottery;
 
-  const isInvalid = liveAiResult
-    ? (liveAiResult.isValidCraft === false || liveAiResult.isProduct === false)
-    : (visualScan.isValidCraft === false || visualScan.isProduct === false);
+  const isInvalid = forceArtisanCraft
+    ? false
+    : (liveAiResult
+        ? (liveAiResult.isValidCraft === false || liveAiResult.isProduct === false)
+        : (visualScan.isValidCraft === false || visualScan.isProduct === false));
 
   const detectedNonCraftObject = liveAiResult?.detectedNonCraftObject || visualScan.detectedNonCraftObject;
   const detectedNonCraftObjectHi = liveAiResult?.detectedNonCraftObjectHi || visualScan.detectedNonCraftObjectHi;
   const nonCraftExplanation = liveAiResult?.rejectionReason || visualScan.nonCraftExplanation;
 
-  const rejectionReason =
-    liveAiResult?.rejectionReason ||
-    visualScan.rejectionReason ||
-    (isInvalid ? `This photo appears to be ${detectedNonCraftObject || 'a non-craft item'}, not an authentic handcrafted artisan product. Please upload a clear photo of your craft.` : undefined);
-  const rejectionReasonHi =
-    liveAiResult?.rejectionReasonHi ||
-    visualScan.rejectionReasonHi ||
-    (isInvalid ? `यह तस्वीर ${detectedNonCraftObjectHi || 'एक गैर-शिल्प वस्तु'} प्रतीत होती है, यह कोई प्रामाणिक हस्तशिल्प उत्पाद नहीं है। कृपया अपने शिल्प की स्पष्ट फ़ोटो अपलोड करें।` : undefined);
+  const rejectionReason = isInvalid
+    ? (liveAiResult?.rejectionReason ||
+       visualScan.rejectionReason ||
+       `This photo appears to be ${detectedNonCraftObject || 'a non-craft item'}, not an authentic handcrafted artisan product. Please upload a clear photo of your craft.`)
+    : undefined;
+  const rejectionReasonHi = isInvalid
+    ? (liveAiResult?.rejectionReasonHi ||
+       visualScan.rejectionReasonHi ||
+       `यह तस्वीर ${detectedNonCraftObjectHi || 'एक गैर-शिल्प वस्तु'} प्रतीत होती है, यह कोई प्रामाणिक हस्तशिल्प उत्पाद नहीं है। कृपया अपने शिल्प की स्पष्ट फ़ोटो अपलोड करें।`)
+    : undefined;
 
   const finalCraftName = isInvalid ? 'Invalid Photo / अमान्य फोटो' : (liveAiResult?.craftName || visualScan.craftName || dbData.craftName);
   const finalCraftNameHi = isInvalid ? 'अमान्य शिल्प फ़ोटो' : (liveAiResult?.craftNameHi || visualScan.craftNameHi || dbData.craftNameHi);
-  const finalMaterials = isInvalid ? [] : (liveAiResult?.materials?.length ? liveAiResult.materials : visualScan.materials);
+  const finalMaterials = isInvalid ? [] : (liveAiResult?.materials?.length ? liveAiResult.materials : (visualScan.materials?.length ? visualScan.materials : dbData.materials));
   const finalStory = isInvalid ? '' : (liveAiResult?.culturalStory || visualScan.culturalStory || dbData.story);
   const finalStoryHi = isInvalid ? '' : (liveAiResult?.culturalStoryHi || visualScan.culturalStoryHi || dbData.storyHi);
   const finalTitle = isInvalid ? 'Not a recognized craft product' : (liveAiResult?.suggestedTitle || visualScan.suggestedTitle || dbData.title);
@@ -351,7 +525,7 @@ export async function analyzeCraftPhoto(
   const finalPriceBand = isInvalid
     ? { min: 0, max: 0, suggested: 0, rationale: 'Invalid craft photo' }
     : (liveAiResult?.priceBand || visualScan.priceBand || dbData.priceBand);
-  const finalTags = isInvalid ? [] : (liveAiResult?.tags?.length ? liveAiResult.tags : visualScan.tags);
+  const finalTags = isInvalid ? [] : (liveAiResult?.tags?.length ? liveAiResult.tags : dbData.tags);
 
   return {
     isHandicraft: !isInvalid,
@@ -380,4 +554,16 @@ export async function analyzeCraftPhoto(
     confidenceScore: isInvalid ? 0.05 : (liveAiResult?.confidenceScore || visualScan.confidenceScore || 0.96),
     enhancementResult: enhancement
   };
+}
+
+/**
+ * Force re-analyzing an image with guaranteed artisan craft confirmation,
+ * retrieving raw materials, ingredients, and fair pricing appraisal.
+ */
+export async function reanalyzeAsArtisanCraft(
+  imageSource: string | File,
+  category: CraftCategory = 'pottery',
+  onProgress?: (stage: number, stageName: string) => void
+): Promise<PhotoAnalysisDetails> {
+  return analyzeCraftPhoto(imageSource, category, onProgress, true);
 }

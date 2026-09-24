@@ -9,6 +9,12 @@ export type CraftCategory =
   | 'basketry' 
   | 'jewelry' 
   | 'leather' 
+  | 'terracotta'
+  | 'stonecraft'
+  | 'embroidery'
+  | 'paper_mache'
+  | 'glasscraft'
+  | 'carpets'
   | 'other';
 
 export type ProductStatus = 'live' | 'draft' | 'sold' | 'pending_sync' | 'archived';
