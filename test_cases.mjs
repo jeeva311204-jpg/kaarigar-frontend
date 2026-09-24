@@ -99,9 +99,31 @@ async function run() {
   console.log('\nWaiting 4s before next test case to prevent quota spike...');
   await sleep(4000);
 
-  // Case 4: Infrastructure / Drainage Pipe (Permanent regression test for false positive)
-  const res4 = await testCase(
-    '4. Infrastructure Object (Drainage Pipe Discharging Water Into Ditch)',
+  // Case 4: Infrastructure / Drainage Pipe (Permanent regression test - Run 1)
+  const res4a = await testCase(
+    '4a. Infrastructure Object (Drainage Pipe Discharging Water Into Ditch - Run 1 of 3)',
+    'e:/shadhana/public/samples/sample_drainage_pipe.jpg',
+    'image/jpeg',
+    'pottery'
+  );
+
+  console.log('\nWaiting 4s before repeat test...');
+  await sleep(4000);
+
+  // Case 4: Infrastructure / Drainage Pipe (Permanent regression test - Run 2)
+  const res4b = await testCase(
+    '4b. Infrastructure Object (Drainage Pipe Discharging Water Into Ditch - Run 2 of 3)',
+    'e:/shadhana/public/samples/sample_drainage_pipe.jpg',
+    'image/jpeg',
+    'pottery'
+  );
+
+  console.log('\nWaiting 4s before repeat test...');
+  await sleep(4000);
+
+  // Case 4: Infrastructure / Drainage Pipe (Permanent regression test - Run 3)
+  const res4c = await testCase(
+    '4c. Infrastructure Object (Drainage Pipe Discharging Water Into Ditch - Run 3 of 3)',
     'e:/shadhana/public/samples/sample_drainage_pipe.jpg',
     'image/jpeg',
     'pottery'
@@ -112,17 +134,35 @@ async function run() {
   console.log(`Database untouched for analysis: ${productsBefore.length === productsAfter.length ? 'PASS' : 'FAIL'}`);
 
   // Assertions
-  const cases = [res1, res2, res3, res4];
+  const cases = [
+    { res: res1, expectedCraft: true },
+    { res: res2, expectedCraft: false },
+    { res: res3, expectedCraft: false },
+    { res: res4a, expectedCraft: false },
+    { res: res4b, expectedCraft: false },
+    { res: res4c, expectedCraft: false }
+  ];
+
   let failed = false;
-  cases.forEach((c, idx) => {
-    if (idx > 0 && c.json?.isHandicraft === true) {
-      console.error(`FAIL: Case ${idx + 1} (${c.name}) erroneously validated as handicraft!`);
+  cases.forEach(({ res, expectedCraft }, idx) => {
+    if (!res || !res.json) {
+      console.error(`FAIL: Test #${idx + 1} did not return valid JSON response.`);
       failed = true;
+    } else if (res.json.isHandicraft !== expectedCraft) {
+      console.error(`FAIL: Test #${idx + 1} (${res.name}): Expected isHandicraft=${expectedCraft}, but got ${res.json.isHandicraft}!`);
+      failed = true;
+    } else {
+      console.log(`PASS: Test #${idx + 1} (${res.name}) => isHandicraft: ${res.json.isHandicraft} [${res.json.detectedSubject || res.json.detectedNonCraftObject}]`);
     }
   });
 
   if (!failed) {
-    console.log('\n✅ ALL HANDICRAFT VALIDATION TESTS PASSED: Zero false positives detected.');
+    console.log('\n============================================================');
+    console.log('✅ ALL TEST CASES & 3/3 DRAINAGE PIPE RE-TESTS PASSED');
+    console.log('Zero false positives. Two-pass validation pipeline verified.');
+    console.log('============================================================');
+  } else {
+    console.error('\n❌ VALIDATION TESTS FAILED');
   }
 }
 

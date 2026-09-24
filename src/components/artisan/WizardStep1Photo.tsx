@@ -123,8 +123,8 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
           if (!isCancelled) {
             setAnalysis(res);
             setIsScanning(false);
-            // Automatically switch category if image analysis detected a specific craft
-            if (res.detectedCategory && res.detectedCategory !== selectedCategory) {
+            // Automatically switch category if image analysis detected a specific valid craft
+            if (res.isValidCraft !== false && res.detectedCategory && res.detectedCategory !== selectedCategory && res.detectedCategory !== 'other') {
               onSelectCategory(res.detectedCategory);
             }
             if (onAnalysisComplete) {
@@ -193,7 +193,14 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
       ? analysis.enhancementResult.enhancedUrl
       : imagePreview;
 
-  const isInvalidPhoto = Boolean(analysis && (analysis.isValidCraft === false || analysis.isProduct === false));
+  const isInvalidPhoto = Boolean(
+    analysis && (
+      analysis.isValidCraft === false ||
+      analysis.isProduct === false ||
+      analysis.isHandicraft === false ||
+      (analysis.confidenceScore !== undefined && analysis.confidenceScore < 0.40)
+    )
+  );
 
   return (
     <div className="space-y-6">
@@ -355,7 +362,10 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
                           <span className="text-base">
                             {analysis.detectedNonCraftObject.toLowerCase().includes('phone') ? '📱' :
                              analysis.detectedNonCraftObject.toLowerCase().includes('tree') ? '🌳' :
-                             analysis.detectedNonCraftObject.toLowerCase().includes('post') || analysis.detectedNonCraftObject.toLowerCase().includes('pole') ? '🏮' : '🔍'}
+                             analysis.detectedNonCraftObject.toLowerCase().includes('light') || analysis.detectedNonCraftObject.toLowerCase().includes('street') ? '💡' :
+                             analysis.detectedNonCraftObject.toLowerCase().includes('post') || analysis.detectedNonCraftObject.toLowerCase().includes('pole') || analysis.detectedNonCraftObject.toLowerCase().includes('wire') ? '🏮' :
+                             analysis.detectedNonCraftObject.toLowerCase().includes('road') || analysis.detectedNonCraftObject.toLowerCase().includes('asphalt') || analysis.detectedNonCraftObject.toLowerCase().includes('pothole') || analysis.detectedNonCraftObject.toLowerCase().includes('mud') || analysis.detectedNonCraftObject.toLowerCase().includes('rut') ? '🛣️' :
+                             analysis.detectedNonCraftObject.toLowerCase().includes('pipe') || analysis.detectedNonCraftObject.toLowerCase().includes('drain') ? '🚰' : '🔍'}
                           </span>
                           <span>{isHindi ? 'पहचानी गई वस्तु:' : 'AI Identified Subject:'}</span>
                           <span className="text-red-700 font-extrabold">{analysis.detectedNonCraftObject}</span>
@@ -427,8 +437,8 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
                   </button>
                   <p className="text-[11px] text-stone-600 text-center mt-1.5 font-medium leading-relaxed">
                     {isHindi
-                      ? 'सिरेमिक/मिट्टी के बर्तन, वस्त्र या कलाकृति के लिए कच्चे माल, सामग्री और उचित बाज़ार मूल्य का विश्लेषण करें।'
-                      : 'Verify studio pottery, tableware, or handmade items to extract authentic materials & fair price.'}
+                      ? 'ताड़ के पत्ते/सिककी टोकरी, सिरेमिक/मिट्टी के बर्तन, वस्त्र या हस्तशिल्प के लिए कच्चे माल, सामग्री और उचित बाज़ार मूल्य का विश्लेषण करें।'
+                      : 'Verify coiled basketry, palm leaf crafts, pottery, or handmade artisan products to extract authentic materials & fair price.'}
                   </p>
                 </div>
               </div>
@@ -666,6 +676,13 @@ export const WizardStep1Photo: React.FC<WizardStep1PhotoProps> = ({
             <span className="text-[10px] font-bold uppercase tracking-wider text-red-800 bg-red-100/90 px-2 py-0.5 rounded-md border border-red-200">
               {isHindi ? '❌ अमान्य तस्वीरें:' : '❌ Test Invalid:'}
             </span>
+            <button
+              type="button"
+              onClick={() => onImageChange('/samples/sample_street_light.jpg')}
+              className="text-red-700 hover:text-red-900 font-bold bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg border border-red-300 cursor-pointer flex items-center gap-1 transition-colors text-xs"
+            >
+              <span>💡 Street Light</span>
+            </button>
             <button
               type="button"
               onClick={() => onImageChange('/samples/sample_mobile_phone.jpg')}

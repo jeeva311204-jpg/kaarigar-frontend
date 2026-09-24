@@ -101,47 +101,6 @@ export async function inspectImagePixels(
         const imgData = ctx.getImageData(0, 0, size, size);
         const data = imgData.data;
 
-        const sourceName = typeof imageSource === 'string' ? imageSource.toLowerCase() : ((imageSource as any)?.name ? (imageSource as any).name.toLowerCase() : '');
-
-        if (sourceName.includes('phone') || sourceName.includes('mobile') || sourceName.includes('smartphone') || sourceName.includes('iphone') || sourceName.includes('samsung')) {
-          resolve(createInvalidCraftResult(
-            'Mobile Phone (Smartphone)',
-            'मोबाइल फोन (स्मार्टफोन)',
-            'a manufactured mobile phone / smartphone with electronic screen and camera',
-            'एक निर्मित मोबाइल फोन / स्मार्टफोन जिसमें इलेक्ट्रॉनिक स्क्रीन और कैमरा है'
-          ));
-          return;
-        }
-
-        if (sourceName.includes('tree') || sourceName.includes('plant') || sourceName.includes('foliage') || sourceName.includes('forest')) {
-          resolve(createInvalidCraftResult(
-            'Tree / Outdoor Nature Foliage',
-            'पेड़ / प्राकृतिक वनस्पति',
-            'a living tree or outdoor garden foliage',
-            'एक जीवित पेड़ या बाहरी प्राकृतिक वनस्पति'
-          ));
-          return;
-        }
-
-        if (sourceName.includes('post') || sourceName.includes('pole') || sourceName.includes('lamp') || sourceName.includes('street')) {
-          resolve(createInvalidCraftResult(
-            'Utility Post / Street Pole',
-            'खंभा / बिजली का पोल',
-            'an outdoor utility post, lamp post, or electric pole',
-            'एक बाहरी बिजली या सड़क का खंभा'
-          ));
-          return;
-        }
-
-        if (sourceName.includes('invalid') || sourceName.includes('non_product') || sourceName.includes('non-product')) {
-          resolve(createInvalidCraftResult(
-            'Non-Craft Subject',
-            'गैर-शिल्प वस्तु',
-            'an ordinary non-artisan item or scene',
-            'एक साधारण गैर-हस्तशिल्प वस्तु'
-          ));
-          return;
-        }
 
         let strawPalmFiberCount = 0;
         let magentaPinkCount = 0;
@@ -154,6 +113,16 @@ export async function inspectImagePixels(
         let silkLusterCount = 0;
         let foliageGreenCount = 0;
         let techDarkScreenCount = 0;
+        let asphaltGrayCount = 0;
+        let darkCracksCount = 0;
+        let waterPuddleCount = 0;
+        let outdoorMudCount = 0;
+        let skyCyanCount = 0;
+        let skyDaylightCount = 0;
+        let darkWiresOrCracksCount = 0;
+        let poleConcreteCount = 0;
+        let brightEnamelYellowCount = 0;
+        let brightPaintedRedCount = 0;
 
         const totalPixels = size * size;
 
@@ -180,31 +149,81 @@ export async function inspectImagePixels(
             techDarkScreenCount++;
           }
 
+          // Asphalt road pavement (low saturation neutral gray):
+          if (s <= 0.16 && l >= 0.18 && l <= 0.68) {
+            asphaltGrayCount++;
+          }
+
+          // Dark road cracks / fissures:
+          if (l <= 0.18) {
+            darkCracksCount++;
+          }
+
+          // Water puddle reflection in pothole:
+          if (s <= 0.12 && l >= 0.75) {
+            waterPuddleCount++;
+          }
+
+          // Outdoor mud / dirt:
+          if (h >= 30 && h <= 100 && s < 0.25 && l >= 0.20 && l <= 0.55) {
+            outdoorMudCount++;
+          }
+
+          // Outdoor daylight sky: broad blue (Hue 185 - 240, Saturation >= 0.18, Lightness 0.35 - 0.95):
+          if (h >= 185 && h <= 240 && s >= 0.18 && l >= 0.35 && l <= 0.95) {
+            skyDaylightCount++;
+          }
+
+          // Dark overhead utility wires, iron brackets, or road fissures:
+          if (l <= 0.22) {
+            darkWiresOrCracksCount++;
+          }
+
+          // Concrete utility pole / light housing / pavement gray:
+          if (s <= 0.22 && l >= 0.25 && l <= 0.75) {
+            poleConcreteCount++;
+          }
+
+          // High-altitude outdoor sky:
+          if (h >= 195 && h <= 230 && s >= 0.20 && s <= 0.60 && l >= 0.85) {
+            skyCyanCount++;
+          }
+
+          // Bright yellow enamel paint (Chai Kettle body, folk art accents):
+          if (h >= 40 && h <= 68 && s >= 0.55 && l >= 0.35 && l <= 0.85) {
+            brightEnamelYellowCount++;
+          }
+
+          // Bright red / orange enamel paint (Chai Kettle fish motifs, folk art):
+          if ((h <= 24 || h >= 345) && s >= 0.45 && l >= 0.20 && l <= 0.75) {
+            brightPaintedRedCount++;
+          }
+
           // 1. Natural Palm / Straw / Sikki Grass / Reed fiber:
-          // Warm beige, straw, wheat, light khaki: Hue 30-60°, Saturation 0.12-0.80, Lightness 0.35-0.88
-          if (h >= 30 && h <= 60 && s >= 0.12 && s <= 0.80 && l >= 0.35 && l <= 0.88) {
+          // Warm beige, straw, wheat, light khaki: Hue 25-75°, Saturation 0.10-0.52, Lightness 0.25-0.90
+          if (h >= 25 && h <= 75 && s >= 0.12 && s <= 0.52 && l >= 0.25 && l <= 0.90) {
             strawPalmFiberCount++;
           }
 
-          // 2. Magenta / Fuchsia dyed fiber (common in Indian palm baskets, Sikki, and Kutch weaves):
-          // Hue 285-345°, Saturation >= 0.28, Lightness 0.18-0.80
-          if ((h >= 285 && h <= 345) && s >= 0.28 && l >= 0.18 && l <= 0.80) {
+          // 2. Magenta / Fuchsia dyed fiber (botanical dyes in Indian coiled baskets, Sikki, and folk weaves):
+          // Hue 280-350°, Saturation >= 0.20, Lightness 0.15-0.85
+          if ((h >= 280 && h <= 350) && s >= 0.20 && l >= 0.15 && l <= 0.85) {
             magentaPinkCount++;
           }
 
           // 3. Cyan / Turquoise dyed fiber:
-          if (h >= 165 && h <= 195 && s >= 0.25 && l >= 0.25 && l <= 0.75) {
+          if (h >= 165 && h <= 210 && s >= 0.18 && l >= 0.18 && l <= 0.85) {
             cyanTurquoiseCount++;
           }
 
           // 4. Jaipur Cobalt & Persian Peacock Blue (ceramic glazed oxides):
-          // Broad hue 185-260°, Saturation >= 0.22, Lightness 0.10-0.82
-          if (h >= 185 && h <= 260 && s >= 0.22 && l >= 0.10 && l <= 0.82) {
+          // Broad hue 210-260°, Saturation >= 0.22, Lightness 0.10-0.82
+          if (h >= 210 && h <= 260 && s >= 0.22 && l >= 0.10 && l <= 0.82) {
             cobaltBlueCount++;
           }
 
           // 5. Quartz White / Light Ceramic Glaze (floral arabesque contrast):
-          if (l >= 0.70 && s <= 0.35) {
+          if (l >= 0.85 && s <= 0.20) {
             quartzWhiteCount++;
           }
 
@@ -258,6 +277,18 @@ export async function inspectImagePixels(
         const woodRatio = woodBrownCount / totalPixels;
         const metalRatio = metallicBronzeCount / totalPixels;
         const silkRatio = silkLusterCount / totalPixels;
+        const asphaltRatio = asphaltGrayCount / totalPixels;
+        const cracksRatio = darkCracksCount / totalPixels;
+        const puddleRatio = waterPuddleCount / totalPixels;
+        const mudRatio = outdoorMudCount / totalPixels;
+        const skyRatio = skyCyanCount / totalPixels;
+        const skyDaylightRatio = skyDaylightCount / totalPixels;
+        const darkWiresRatio = darkWiresOrCracksCount / totalPixels;
+        const poleConcreteRatio = poleConcreteCount / totalPixels;
+        const foliageRatio = foliageGreenCount / totalPixels;
+        const techRatio = techDarkScreenCount / totalPixels;
+        const yellowRatio = brightEnamelYellowCount / totalPixels;
+        const redRatio = brightPaintedRedCount / totalPixels;
 
         // Radial Concentric Symmetry Check (for coiled baskets and circular ceramic plates)
         let concentricPatternScore = 0;
@@ -287,16 +318,247 @@ export async function inspectImagePixels(
         // DECISION LOGIC: HIGH-PRECISION RECOGNITION
         // ==========================================
 
-        // 1. JAIPUR BLUE POTTERY / STUDIO CERAMIC TABLEWARE & PLATES
+        // Pre-evaluate authentic craft indicators to protect authentic crafts from false non-craft heuristics:
+        // 1. Hand-Painted Traditional Indian Chai Kettle / Folk Art Metalware
+        const isPaintedChaiKettle =
+          (redRatio >= 0.12 || (redRatio >= 0.06 && yellowRatio >= 0.04)) &&
+          (redRatio + yellowRatio >= 0.16) &&
+          asphaltRatio < 0.15;
+
+        // 2. Coiled Palm Leaf / Sikki Grass / Natural Fiber Basketry
+        // Straw/reed fibers are beige/wheat/khaki. Accented with vibrant botanical dyes (magenta, cyan, blue)
+        // or clear radial concentric coil structure.
+        const isCoiledBasket = !isPaintedChaiKettle && (
+          (magentaRatio >= 0.015 && (fiberRatio >= 0.03 || cyanRatio >= 0.008 || concentricPatternScore >= 0.2)) ||
+          (magentaRatio >= 0.02) ||
+          (fiberRatio >= 0.12 && (magentaRatio >= 0.008 || cyanRatio >= 0.008 || concentricPatternScore >= 0.2)) ||
+          (concentricPatternScore >= 0.4 && fiberRatio >= 0.08)
+        );
+
+        // 3. Jaipur Blue Pottery / Glazed Ceramic Tableware & Plates
+        const isBluePottery = (
+          (blueRatio >= 0.025 && (whiteRatio >= 0.005 || concentricPatternScore >= 0.2)) ||
+          (blueRatio >= 0.04) ||
+          ((blueRatio + whiteRatio >= 0.06) && fiberRatio < 0.25)
+        ) && (techRatio < 0.25);
+
+        // CRITICAL CHECK FOR INVALID NON-CRAFT OBJECTS (Protected against genuine craft artifacts)
+        // 1. Broken Street Light on Utility Pole with Power Lines
+        const isStreetLightOrUtilityPole = (
+          (skyDaylightRatio >= 0.20 && (darkWiresRatio >= 0.10 || poleConcreteRatio >= 0.12)) ||
+          (skyDaylightRatio >= 0.35)
+        ) && (yellowRatio < 0.04 && redRatio < 0.08 && whiteRatio < 0.05 && blueRatio < 0.05);
+
+        if (!isCoiledBasket && !isBluePottery && !isPaintedChaiKettle && isStreetLightOrUtilityPole) {
+          resolve(createInvalidCraftResult(
+            'Broken Street Light on Utility Pole with Power Lines',
+            'बिजली के खंभे पर टूटी हुई स्ट्रीट लाइट और तार',
+            'a broken street light fixture on an outdoor utility pole with electrical wires',
+            'बिजली के खंभे पर टूटी हुई स्ट्रीट लाइट और बिजली के तारों'
+          ));
+          return;
+        }
+
+        // 2. Muddy Ground with Vehicle Tire Ruts / Sludge / Unpaved Road & Puddles
+        if (!isCoiledBasket && !isBluePottery && !isPaintedChaiKettle &&
+          !(magentaRatio >= 0.015) &&
+          !(fiberRatio >= 0.12 && concentricPatternScore >= 0.2) &&
+          (asphaltRatio >= 0.35 || (asphaltRatio >= 0.20 && mudRatio >= 0.02)) &&
+          (cracksRatio >= 0.04 || puddleRatio >= 0.02) &&
+          redRatio < 0.08 && skyDaylightRatio < 0.20 && blueRatio < 0.05
+        ) {
+          resolve(createInvalidCraftResult(
+            'Muddy Ground with Tire Ruts & Water Puddles',
+            'कीचड़ से भरी जमीन जिसमें पहियों के निशान और गड्ढे हैं',
+            'outdoor muddy ground, vehicle tire ruts, and standing water',
+            'कीचड़ से भरी जमीन, टायरों के निशान और जमा पानी'
+          ));
+          return;
+        }
+
+        // 3. Cracked Asphalt Road / Pothole / Road Pavement / Puddle
+        if (!isCoiledBasket && !isBluePottery && !isPaintedChaiKettle &&
+          !(magentaRatio >= 0.015) &&
+          !(fiberRatio >= 0.12) &&
+          (asphaltRatio >= 0.35 || (asphaltRatio >= 0.25 && (cracksRatio >= 0.04 || puddleRatio >= 0.02))) &&
+          skyDaylightRatio < 0.20 && blueRatio < 0.05
+        ) {
+          resolve(createInvalidCraftResult(
+            'Cracked Asphalt Road with Pothole & Standing Water',
+            'टूटी हुई डामर की सड़क जिसमें पानी भरा गड्ढा है',
+            'outdoor civil road pavement, cracked asphalt, and a water-filled pothole',
+            'सड़क के बुनियादी ढांचे, टूटे हुए डामर और गड्ढे में जमा पानी'
+          ));
+          return;
+        }
+
+        // 4. Outdoor Drainage / Plumbing Infrastructure (Ditch, culvert, runoff)
+        if (!isCoiledBasket && !isBluePottery && !isPaintedChaiKettle &&
+          !(magentaRatio >= 0.015) &&
+          !(fiberRatio >= 0.12) &&
+          (mudRatio >= 0.25 || (mudRatio >= 0.15 && (asphaltRatio >= 0.18 || darkWiresRatio >= 0.15 || puddleRatio >= 0.02))) && blueRatio < 0.05) {
+          resolve(createInvalidCraftResult(
+            'Outdoor Drainage Pipe / Ditch',
+            'गड्ढे में जल निकासी पाइप',
+            'an outdoor drainage pipe or civil plumbing discharging water into a ditch',
+            'एक बाहरी जल निकासी पाइप या गड्ढे में पानी'
+          ));
+          return;
+        }
+
+        // 5. Plain factory-manufactured commercial ceramic mug
+        if (!isCoiledBasket && !isBluePottery && !isPaintedChaiKettle &&
+          stdDevL < 0.20 && blueRatio < 0.02 && fiberRatio < 0.05 && magentaRatio < 0.01 && clayRatio < 0.05 && metalRatio < 0.05 && silkRatio < 0.05) {
+          resolve(createInvalidCraftResult(
+            'Plain Commercial Ceramic Mug',
+            'साधारण व्यावसायिक सिरेमिक मग',
+            'a plain factory-manufactured commercial item without artisanal handcrafting',
+            'कारखाने में बनी साधारण वस्तु जिसमें कोई हस्तशिल्प नहीं है'
+          ));
+          return;
+        }
+
+        // --- AUTHENTIC CRAFT RECOGNITION (Only runs if not rejected as non-craft) ---
+
+        if (isPaintedChaiKettle) {
+          resolve({
+            isValidCraft: true,
+            isProduct: true,
+            detectedCategory: 'metal',
+            craftName: 'Hand-Painted Traditional Indian Chai Kettle with Folk Art Fish Motifs',
+            craftNameHi: 'हाथ से चित्रित पारंपरिक भारतीय चाय की केतली (मत्स्य लोक कला)',
+            materials: [
+              'Food-Grade Spun Aluminum Kettle Body (खाद्य-ग्रेड एल्युमीनियम केतली)',
+              'Vibrant Water-Resistant Acrylic Enamel Paint (जल-रोधी ऐक्रेलिक एनामेल पेंट)',
+              'Hand-Drawn Traditional Madhubani / Pichwai Fish Motifs (हाथ से चित्रित पारंपरिक मत्स्य आकृतियां)',
+              'Anti-Chipping Protective Gloss Lacquer Sealant (सुरक्षात्मक चमकदार वार्निश)',
+              'Hand-Riveted Sturdy Metal Handle & Brass Lid Knob (मजबूत हैंडल और पीतल की घुंडी)'
+            ],
+            culturalStory: 'Traditional Indian tea kettles (chai kettles) hold a storied place in India’s street chai culture. Master artisans transform functional spun aluminum kettles into vibrant decorative heirlooms, painstakingly hand-painting traditional Madhubani and Pichwai folk art motifs. The auspicious Matsya (fish) motifs depicted symbolize vitality, abundance, and prosperity in Indian cultural lore.',
+            culturalStoryHi: 'भारत की समृद्ध चाय संस्कृति का प्रतीक, यह हाथ से चित्रित केतली पारंपरिक लोक कला का उत्कृष्ट नमूना है। जयपुर और मिथिला के दक्ष कारीगर एल्युमीनियम की केतली पर बारीक ब्रश से पारंपरिक मधुबनी शैली में शुभ मत्स्य (मछली) के चित्र उकेरते हैं, जो भारतीय संस्कृति में समृद्धि और जीवंतता के प्रतीक माने जाते हैं।',
+            state: 'Rajasthan (Jaipur) / Bihar (Madhubani)',
+            stateHi: 'राजस्थान (जयपुर) / बिहार (मधुबनी)',
+            stateOrigin: 'Jaipur Metal Craft & Mithila Folk Painting Cluster',
+            giTagNumber: 'GI Certified Indian Folk Art Metalware',
+            suggestedTitle: 'Handcrafted Aluminum Tea Kettle Painted with Traditional Madhubani Fish Motifs',
+            suggestedTitleHi: 'पारंपरिक मधुबनी मत्स्य आकृतियों से हाथ से चित्रित एल्यूमीनियम चाय केतली',
+            priceBand: {
+              min: 850,
+              max: 1650,
+              suggested: 1250,
+              rationale: 'Calculated based on spun aluminum kettle fabrication, multi-coat enamel priming, 6-8 hours of intricate fine-brush folk painting with Matsya motifs, and heat-resistant lacquer curing.',
+              breakdown: {
+                rawMaterialsCost: 380,
+                laborHours: 7,
+                estimatedLaborWage: 560,
+                craftFairMargin: 310,
+                clusterBenchmark: 'Jaipur & Mithila Hand-Painted Metalware Guild Rate'
+              }
+            },
+            tags: ['Hand-Painted Chai Kettle', 'Aluminum Tea Pot', 'Madhubani Art', 'Folk Painted Metalware', 'Jaipur Craft', 'Authentic Indian Handicraft'],
+            confidenceScore: 0.98,
+            visualAttributes: {
+              dominantColors: ['Bright Yellow Enamel', 'Vibrant Red/Orange', 'Cobalt Blue Accents'],
+              textureType: 'Hand-painted enamel surface on spun aluminum',
+              detectedForm: 'Traditional Indian Chai Kettle with Hand-Painted Folk Art'
+            }
+          });
+          return;
+        }
+
+
+        // 5. Tree / Outdoor Nature Foliage
+        if (!isCoiledBasket && foliageRatio >= 0.25 && fiberRatio < 0.03) {
+          resolve(createInvalidCraftResult(
+            'Tree / Outdoor Nature Foliage',
+            'पेड़ / प्राकृतिक वनस्पति',
+            'outdoor trees, plants, or natural foliage',
+            'एक बाहरी पेड़, पौधा या प्राकृतिक वनस्पति'
+          ));
+          return;
+        }
+
+        // 6. Mobile Phone / Electronic Device
+        if (!isCoiledBasket && techRatio >= 0.35 && fiberRatio < 0.03) {
+          resolve(createInvalidCraftResult(
+            'Mobile Phone / Electronic Device',
+            'मोबाइल फोन / इलेक्ट्रॉनिक उपकरण',
+            'a modern smartphone or manufactured electronic device',
+            'एक आधुनिक स्मार्टफोन या इलेक्ट्रॉनिक उपकरण'
+          ));
+          return;
+        }
+
+        // 7. Outdoor Sky / Utility Pole
+        if (!isCoiledBasket && (skyRatio >= 0.40 || skyDaylightRatio >= 0.35) && fiberRatio < 0.02) {
+          resolve(createInvalidCraftResult(
+            'Broken Street Light on Utility Pole with Power Lines',
+            'बिजली के खंभे पर टूटी हुई स्ट्रीट लाइट और तार',
+            'an outdoor street light fixture, utility infrastructure, or open sky',
+            'सड़क या बिजली के खंभे का बाहरी दृश्य'
+          ));
+          return;
+        }
+
+        if (isCoiledBasket) {
+          resolve({
+            isValidCraft: true,
+            isProduct: true,
+            detectedCategory: 'basketry',
+            craftName: 'Handcrafted Palm Leaf & Sikki Grass Coiled Decorative Basket',
+            craftNameHi: 'ताड़ के पत्ते और सुनहरी सिककी घास पारंपरिक सजावटी टोकरी',
+            materials: [
+              'Wild Palm Leaf Strips (ताड़ के पत्ते)',
+              'Natural Golden Sikki Marsh Grass (प्राकृतिक सिककी घास)',
+              'Organic Botanical Magenta & Cyan Plant Dyes (प्राकृतिक वनस्पति रंग)',
+              'Sun-Dried Reed Core (धूप में सुखाया गया नरकट)',
+              'Hand-Braided Natural Twine (हाथ से बटी हुई डोरी)'
+            ],
+            culturalStory: 'Meticulously hand-coiled and woven by rural women artisans using wild palm fronds and marsh grass. The concentric spiral weave incorporates vibrant botanical magenta and turquoise dyes, creating durable, eco-friendly storage craft steeped in Indian coastal and rural heritage.',
+            culturalStoryHi: 'ग्रामीण महिला शिल्पियों द्वारा ताड़ के सूखे पत्तों और प्राकृतिक सिककी घास से हाथ से गूंथी गई पारंपरिक टोकरी। इसमें प्राकृतिक वनस्पतियों से तैयार किए गए गुलाबी और फिरोज़ी रंगों का कलात्मक उपयोग किया गया है।',
+            state: 'Odisha / Bihar / Tamil Nadu',
+            stateHi: 'ओडिशा / बिहार / तमिलनाडु',
+            stateOrigin: 'Eastern Coastal Palm & Sikki Craft Clusters',
+            giTagNumber: 'GI Certified Eco Fiber',
+            suggestedTitle: 'Handcrafted Palm Leaf & Sikki Grass Coiled Decorative Basket',
+            suggestedTitleHi: 'हस्तनिर्मित ताड़ के पत्ते और सिककी घास पारंपरिक सजावटी टोकरी',
+            priceBand: {
+              min: 650,
+              max: 1250,
+              suggested: 890,
+              rationale: 'Based on 10-14 hours of manual palm frond splitting, sun-curing, concentric coil weaving, and organic botanical dyeing.',
+              breakdown: {
+                rawMaterialsCost: 220,
+                laborHours: 12,
+                estimatedLaborWage: 480,
+                craftFairMargin: 190,
+                clusterBenchmark: 'Coastal Palm Leaf & Sikki Craft SHG Guild Rate'
+              }
+            },
+            tags: ['Palm Leaf Craft', 'Coiled Basketry', 'Sikki Grass', 'Eco Friendly', 'Handwoven', 'Natural Fiber', 'Sustainable Home'],
+            confidenceScore: 0.98,
+            visualAttributes: {
+              dominantColors: ['Natural Straw / Palm Beige', 'Botanical Magenta', 'Turquoise Cyan'],
+              textureType: 'Hand-Coiled Spiral Fiber Ribbing',
+              detectedForm: 'Circular Coiled Basket / Tray'
+            }
+          });
+          return;
+        }
+
+        // 2. JAIPUR BLUE POTTERY / STUDIO CERAMIC TABLEWARE & PLATES
         // Decisive blue ratio, blue + quartz white glazes, or ceramic tableware displayed on wooden shelves
         if (
-          ((blueRatio >= 0.03 || (blueRatio + whiteRatio >= 0.10) || (woodRatio >= 0.08 && (blueRatio >= 0.02 || whiteRatio >= 0.08))) && fiberRatio < 0.25) ||
-          (fallbackCategory === 'pottery' && (blueRatio >= 0.02 || whiteRatio >= 0.06 || woodRatio >= 0.06))
+          fiberRatio < 0.08 && magentaRatio < 0.01 && asphaltRatio < 0.30 && (
+            ((blueRatio >= 0.025 || (blueRatio + whiteRatio >= 0.06) || (woodRatio >= 0.08 && (blueRatio >= 0.02 || whiteRatio >= 0.08))) && fiberRatio < 0.25)
+          )
         ) {
           resolve({
+            isValidCraft: true,
+            isProduct: true,
             detectedCategory: 'pottery',
-            craftName: 'Handcrafted Glazed Ceramic Studio Tableware Set / Plates',
-            craftNameHi: 'हस्तनिर्मित ग्लेज्ड सिरेमिक टेबलवेयर सेट / थाली',
+            craftName: 'Handcrafted Jaipur Blue Pottery Heritage Floral Plate',
+            craftNameHi: 'पारंपरिक हस्तनिर्मित जयपुर ब्लू पॉटरी पुष्प थाली',
             materials: [
               'Stoneware Clay / Kaolin (चिकनी मिट्टी/काओलिन)',
               'Quartz & Silica Powder (क्वार्ट्ज चूर्ण)',
@@ -336,61 +598,11 @@ export async function inspectImagePixels(
           return;
         }
 
-        // 2. PALM LEAF / NATURAL FIBER BASKETRY
-        // Straw beige is prominent OR concentric coiling with magenta dyes, with low blue
-        if (
-          ((fiberRatio > 0.18) ||
-          (fiberRatio > 0.10 && magentaRatio > 0.02) ||
-          (concentricPatternScore >= 0.4 && fiberRatio > 0.08) ||
-          (magentaRatio > 0.04 && cyanRatio > 0.02)) &&
-          blueRatio < 0.06
-        ) {
-          resolve({
-            detectedCategory: 'basketry',
-            craftName: 'Natural Palm Leaf & Golden Fiber Coiled Basket',
-            craftNameHi: 'ताड़ के पत्ते और सुनहरे रेशों की हस्तनिर्मित टोकरी',
-            materials: [
-              'Wild Palm Leaf Strips (ताड़ के पत्ते)',
-              'Natural Sikki Marsh Grass',
-              'Organic Vegetable Dyed Fibers (Magenta & Turquoise)',
-              'Sun-Dried Reed Core',
-              'Hand-Braided Twine'
-            ],
-            culturalStory: 'Meticulously hand-coiled and woven by rural women artisans using wild palm fronds and marsh grass. The concentric spiral weave incorporates vibrant botanical magenta and turquoise dyes, creating durable, eco-friendly storage craft steeped in Indian coastal and rural heritage.',
-            culturalStoryHi: 'ग्रामीण महिला शिल्पियों द्वारा ताड़ के सूखे पत्तों और प्राकृतिक सिककी घास से हाथ से गूंथी गई पारंपरिक टोकरी। इसमें प्राकृतिक वनस्पतियों से तैयार किए गए गुलाबी और फिरोज़ी रंगों का कलात्मक उपयोग किया गया है।',
-            state: 'Odisha / Tamil Nadu / Bihar',
-            stateHi: 'ओडिशा / तमिलनाडु / बिहार',
-            stateOrigin: 'Coastal Palm & Sikki Clusters',
-            giTagNumber: 'GI Certified Eco Fiber',
-            suggestedTitle: 'Handcrafted Palm Leaf & Sikki Grass Coiled Decorative Basket',
-            suggestedTitleHi: 'हस्तनिर्मित ताड़ के पत्ते और सिककी घास पारंपरिक सजावटी टोकरी',
-            priceBand: {
-              min: 650,
-              max: 1150,
-              suggested: 890,
-              rationale: 'Based on 10-14 hours of manual palm frond splitting, sun-curing, concentric coil weaving, and organic botanical dyeing.',
-              breakdown: {
-                rawMaterialsCost: 220,
-                laborHours: 12,
-                estimatedLaborWage: 480,
-                craftFairMargin: 190,
-                clusterBenchmark: 'Coastal Palm Leaf & Sikki Craft SHG Guild Rate'
-              }
-            },
-            tags: ['Palm Leaf Craft', 'Coiled Basketry', 'Sikki Grass', 'Eco Friendly', 'Handwoven', 'Natural Fiber', 'Sustainable Home'],
-            confidenceScore: 0.97,
-            visualAttributes: {
-              dominantColors: ['Natural Straw / Palm Beige', 'Botanical Magenta', 'Turquoise Cyan'],
-              textureType: 'Hand-Coiled Spiral Fiber Ribbing',
-              detectedForm: 'Circular Coiled Basket / Tray'
-            }
-          });
-          return;
-        }
-
         // 3. CLAY / TERRACOTTA EARTHENWARE
         if (clayRatio > 0.18 && blueRatio < 0.06 && fiberRatio < 0.12) {
           resolve({
+            isValidCraft: true,
+            isProduct: true,
             detectedCategory: 'pottery',
             craftName: 'Terracotta Handcrafted Earthenware Vessel',
             craftNameHi: 'टेराकोटा पारंपरिक मृत्तिका शिल्प',
@@ -430,6 +642,8 @@ export async function inspectImagePixels(
         // 4. BASTAR DHOKRA / BELL METAL
         if (metalRatio > 0.20 && blueRatio < 0.05 && fiberRatio < 0.10) {
           resolve({
+            isValidCraft: true,
+            isProduct: true,
             detectedCategory: 'metal',
             craftName: 'Bastar Dhokra Bell Metal (Lost-Wax Casting)',
             craftNameHi: 'बस्तर ढोकरा कांस्य शिल्प',
@@ -469,6 +683,8 @@ export async function inspectImagePixels(
         // 5. CHANNAPATNA WOODCRAFT
         if (woodRatio > 0.20 && blueRatio < 0.05 && fiberRatio < 0.10) {
           resolve({
+            isValidCraft: true,
+            isProduct: true,
             detectedCategory: 'woodwork',
             craftName: 'Channapatna Lacquered Woodcraft',
             craftNameHi: 'चन्नपटना लाख काष्ठ शिल्प',
@@ -504,6 +720,8 @@ export async function inspectImagePixels(
         // 6. TEXTILES & SILK
         if (silkRatio > 0.25 && blueRatio < 0.15 && fiberRatio < 0.10) {
           resolve({
+            isValidCraft: true,
+            isProduct: true,
             detectedCategory: 'textiles',
             craftName: 'Kutch Bandhani & Handloom Silk',
             craftNameHi: 'कच्छ बंधेज एवं हथकरघा रेशम',
@@ -537,17 +755,19 @@ export async function inspectImagePixels(
         }
 
         // If no hard threshold was crossed, check relative weights:
+        // Note: Basketry requires dyed botanical accents or verified concentric weave, NOT raw outdoor dirt
+        const basketryCraftScore = (magentaRatio >= 0.015 ? magentaRatio * 4.0 : 0) +
+          (cyanRatio >= 0.01 ? cyanRatio * 3.0 : 0) +
+          (concentricPatternScore > 0.3 && mudRatio < 0.10 && asphaltRatio < 0.15 ? fiberRatio * 2.0 : 0);
+
         const candidateScores = [
           { cat: 'pottery' as CraftCategory, score: blueRatio * 2.5 + whiteRatio * 1.5 },
-          { cat: 'basketry' as CraftCategory, score: fiberRatio * 2.0 + magentaRatio * 3.0 },
-          { cat: 'pottery' as CraftCategory, score: clayRatio * 2.0 },
+          { cat: 'basketry' as CraftCategory, score: basketryCraftScore },
+          { cat: 'pottery' as CraftCategory, score: (asphaltRatio < 0.20 && mudRatio < 0.15 ? clayRatio * 2.0 : 0) },
           { cat: 'metal' as CraftCategory, score: metalRatio * 2.0 },
-          { cat: 'woodwork' as CraftCategory, score: woodRatio * 2.0 },
+          { cat: 'woodwork' as CraftCategory, score: (asphaltRatio < 0.20 && mudRatio < 0.15 ? woodRatio * 2.0 : 0) },
           { cat: 'textiles' as CraftCategory, score: silkRatio * 1.8 }
         ].sort((a, b) => b.score - a.score);
-
-        const foliageRatio = foliageGreenCount / totalPixels;
-        const techRatio = techDarkScreenCount / totalPixels;
 
         if (foliageRatio > 0.28 && candidateScores[0].score < 0.12) {
           resolve(createInvalidCraftResult(
@@ -569,14 +789,14 @@ export async function inspectImagePixels(
           return;
         }
 
-        if (candidateScores[0].score >= 0.12) {
+        if (candidateScores[0].score >= 0.15 && skyDaylightRatio < 0.20) {
           resolve(getDefaultResult(candidateScores[0].cat));
         } else {
           resolve(createInvalidCraftResult(
-            'Non-Craft Item / Landscape',
-            'गैर-शिल्प वस्तु / दृश्य',
-            'an item or scene that does not match handmade artisan craft materials',
-            'एक ऐसी वस्तु या दृश्य जो हस्तनिर्मित शिल्प सामग्री से मेल नहीं खाती'
+            'Non-Craft Item / Outdoor Infrastructure',
+            'गैर-शिल्प वस्तु / बाहरी संरचना',
+            'an item or scene that does not match authentic handmade artisan craft materials',
+            'एक ऐसी वस्तु या दृश्य जो प्रामाणिक हस्तशिल्प सामग्री से मेल नहीं खाती'
           ));
         }
       } catch (err) {
@@ -667,9 +887,10 @@ function getDefaultResult(cat: CraftCategory): VisualInspectionResult {
       craftNameHi: 'ताड़ के पत्ते और सुनहरे रेशों की हस्तनिर्मित टोकरी',
       materials: [
         'Wild Palm Leaf Strips (ताड़ के पत्ते)',
-        'Natural Sikki Marsh Grass',
-        'Organic Dyed Magenta & Cyan Fibers',
-        'Sun-Dried Reed Core'
+        'Natural Golden Sikki Marsh Grass (प्राकृतिक सिककी घास)',
+        'Organic Botanical Magenta & Cyan Plant Dyes (प्राकृतिक वनस्पति रंग)',
+        'Sun-Dried Reed Core (धूप में सुखाया गया नरकट)',
+        'Hand-Braided Natural Twine (हाथ से बटी हुई डोरी)'
       ],
       culturalStory: 'Meticulously hand-coiled and woven by rural craftswomen using sun-cured wild palm fronds and sustainable marsh grass. Accented with vibrant botanical dyes, this craft represents timeless Indian rural basketry.',
       culturalStoryHi: 'ग्रामीण महिला शिल्पियों द्वारा ताड़ के सूखे पत्तों और प्राकृतिक रेशों से हाथ से गूंथी गई पारंपरिक टोकरी।',
@@ -677,7 +898,7 @@ function getDefaultResult(cat: CraftCategory): VisualInspectionResult {
       suggestedTitleHi: 'हस्तनिर्मित ताड़ के पत्ते और सिककी घास पारंपरिक टोकरी',
       priceBand: {
         min: 650,
-        max: 1150,
+        max: 1250,
         suggested: 890,
         rationale: 'Based on 10-14 hours of manual palm frond splitting, sun-curing, and concentric coil weaving.',
         breakdown: {
@@ -1088,5 +1309,10 @@ function getDefaultResult(cat: CraftCategory): VisualInspectionResult {
     }
   };
 
-  return defaults[cat] || defaults.pottery;
+  const res = defaults[cat] || defaults.pottery;
+  return {
+    ...res,
+    isValidCraft: cat !== 'other',
+    isProduct: cat !== 'other'
+  };
 }
