@@ -23,7 +23,8 @@ import {
   Volume2,
   Wand2,
   X,
-  ExternalLink
+  ExternalLink,
+  Package
 } from 'lucide-react';
 
 export const ReviewPublishPage: React.FC = () => {
@@ -43,6 +44,7 @@ export const ReviewPublishPage: React.FC = () => {
   const [finalPrice, setFinalPrice] = useState<number>(1550);
   const [minPrice, setMinPrice] = useState<number>(1350);
   const [maxPrice, setMaxPrice] = useState<number>(1850);
+  const [stockQuantity, setStockQuantity] = useState<number>(1);
   const [materials, setMaterials] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [showOriginalPhoto, setShowOriginalPhoto] = useState(false);
@@ -75,6 +77,8 @@ export const ReviewPublishPage: React.FC = () => {
         setFinalPrice(res.priceBand?.suggested || 1500);
         setMinPrice(res.priceBand?.min || 1200);
         setMaxPrice(res.priceBand?.max || 1800);
+        const initialQty = Math.max(1, Number(parsed.wizardData?.quantity) || Number(res.priceBand?.quantity) || 1);
+        setStockQuantity(initialQty);
         setMaterials(res.materials || []);
         setTags(res.tags || []);
       } else {
@@ -135,7 +139,7 @@ export const ReviewPublishPage: React.FC = () => {
       artisanPhone: currentUser.phone,
       craftOrigin: analysisResult.stateOrigin || analysisResult.state || 'Artisan Workshop Heritage Cluster',
       materials: materials,
-      stockQuantity: wizardData.quantity || 8,
+      stockQuantity: Math.max(1, Number(stockQuantity) || Number(wizardData.quantity) || 1),
       status: 'live',
       giTagged: true,
       giTagNumber: analysisResult.giTagNumber || 'GI-VERIFIED',
@@ -435,33 +439,120 @@ export const ReviewPublishPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Fair Market Price Band Card */}
+          {/* Workshop Stock Quantity Card */}
+          <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 shadow-craft space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-terracotta-600" />
+                <h4 className="font-serif font-bold text-sm sm:text-base text-indigo-950">
+                  {isHindi ? 'कार्यशाला स्टॉक (Ready Workshop Stock)' : 'Workshop Ready Stock (Batch Size)'}
+                </h4>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 bg-turmeric-50 text-turmeric-900 border border-turmeric-200 rounded-full">
+                {stockQuantity} {t('common.pieces')} {isHindi ? 'तैयार' : 'ready for sale'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 p-3 bg-paper-50 rounded-2xl border border-paper-200">
+              <span className="text-xs text-stone-600 font-medium">
+                {isHindi ? 'बिक्री के लिए उपलब्ध नग समायोजित करें:' : 'Adjust units available for immediate purchase:'}
+              </span>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setStockQuantity((prev) => Math.max(1, prev - 1))}
+                  className="w-9 h-9 rounded-xl bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold border border-paper-300 flex items-center justify-center cursor-pointer shadow-xs active:scale-95 transition-transform"
+                  aria-label="Decrease stock"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={stockQuantity}
+                  onChange={(e) => setStockQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-16 px-2 py-1.5 text-center font-serif text-lg font-bold text-indigo-950 bg-white border border-paper-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta-400"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setStockQuantity((prev) => prev + 1)}
+                  className="w-9 h-9 rounded-xl bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold border border-paper-300 flex items-center justify-center cursor-pointer shadow-xs active:scale-95 transition-transform"
+                  aria-label="Increase stock"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Fair Market Price Band & Batch Valuation Card */}
           <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 sm:p-6 shadow-craft space-y-4">
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <h3 className="font-serif text-base sm:text-lg font-bold text-indigo-950">
                   {t('review.priceBandTitle')}
                 </h3>
                 <div className="text-xs text-stone-500 mt-0.5">
-                  {t('review.fairBand')} <span className="font-bold text-indigo-950">₹{minPrice} - ₹{maxPrice}</span>
+                  {t('review.fairBand')}: <span className="font-bold text-indigo-950">₹{minPrice} - ₹{maxPrice}</span> / {isHindi ? 'नग' : 'piece'}
                 </div>
+                {stockQuantity > 1 && (
+                  <div className="text-[11px] text-terracotta-700 font-medium mt-0.5">
+                    {isHindi ? 'पूरे बैच का उचित दायरा:' : 'Full batch fair band:'} ₹{(minPrice * stockQuantity).toLocaleString('en-IN')} - ₹{(maxPrice * stockQuantity).toLocaleString('en-IN')}
+                  </div>
+                )}
               </div>
 
-              <div className="text-right">
+              <div className="text-left sm:text-right bg-paper-50 p-3 sm:p-0 rounded-2xl sm:bg-transparent">
                 <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block">
                   {t('review.setFinalPrice')}
                 </span>
-                <span className="font-serif text-2xl sm:text-3xl font-bold text-terracotta-600">
-                  ₹{finalPrice.toLocaleString('en-IN')}
-                </span>
+                <div className="flex items-baseline sm:justify-end gap-1.5">
+                  <span className="font-serif text-2xl sm:text-3xl font-bold text-terracotta-600">
+                    ₹{finalPrice.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-xs font-semibold text-stone-500">
+                    / {isHindi ? 'नग' : 'piece'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Batch Earnings Formula Calculation Banner */}
+            <div className="bg-indigo-950 text-white rounded-2xl p-4 shadow-craft border border-indigo-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-[11px] font-semibold text-turmeric-300 uppercase tracking-wider">
+                  {isHindi ? 'कुल बैच बिक्री मूल्य (Total Inventory Earnings)' : 'Total Inventory Value (100% Direct to Artisan)'}
+                </div>
+                <div className="font-mono text-sm sm:text-base text-paper-100 flex items-center gap-2 flex-wrap">
+                  <span className="font-bold">₹{finalPrice.toLocaleString('en-IN')} / piece</span>
+                  <span className="text-stone-400">×</span>
+                  <span className="text-turmeric-400 font-bold">{stockQuantity} {stockQuantity === 1 ? 'piece' : 'pieces'}</span>
+                  <span className="text-stone-400">=</span>
+                  <span className="text-emerald-400 font-serif text-lg sm:text-xl font-bold">
+                    ₹{(finalPrice * stockQuantity).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[11px] px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-medium shrink-0">
+                {isHindi ? '100% कारीगर को भुगतान' : '100% Artisan Settlement'}
               </div>
             </div>
 
             {/* Interactive Price Slider & Nudge Buttons */}
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
+                <span>Min: ₹{minPrice}</span>
+                <span className="font-bold text-indigo-950">Unit Price: ₹{finalPrice} / piece</span>
+                <span>Max: ₹{maxPrice + 300}</span>
+              </div>
+
               <input
                 type="range"
-                min={minPrice - 300}
+                min={Math.max(200, minPrice - 300)}
                 max={maxPrice + 500}
                 step={25}
                 value={finalPrice}
@@ -473,39 +564,49 @@ export const ReviewPublishPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleNudgePrice(-50)}
-                  className="px-4 py-2 bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold text-xs sm:text-sm rounded-xl border border-paper-300 flex items-center gap-1 cursor-pointer tap-target-accessible"
+                  className="px-4 py-2 bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold text-xs sm:text-sm rounded-xl border border-paper-300 flex items-center gap-1 cursor-pointer tap-target-accessible shadow-xs active:scale-95"
                 >
                   <Minus className="w-4 h-4" />
-                  <span>₹50</span>
+                  <span>₹50/piece</span>
                 </button>
 
                 <span className="text-xs text-stone-500 font-medium text-center">
-                  {isHindi ? 'मूल्य समायोजित करें' : 'Adjust price freely'}
+                  {isHindi ? 'प्रति नग मूल्य समायोजित करें' : 'Adjust unit price freely'}
                 </span>
 
                 <button
                   type="button"
                   onClick={() => handleNudgePrice(+50)}
-                  className="px-4 py-2 bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold text-xs sm:text-sm rounded-xl border border-paper-300 flex items-center gap-1 cursor-pointer tap-target-accessible"
+                  className="px-4 py-2 bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold text-xs sm:text-sm rounded-xl border border-paper-300 flex items-center gap-1 cursor-pointer tap-target-accessible shadow-xs active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>₹50</span>
+                  <span>₹50/piece</span>
                 </button>
               </div>
             </div>
 
             {/* Price Rationale Explanation */}
-            <div className="bg-turmeric-50/80 border border-turmeric-200 rounded-2xl p-3.5 flex items-start gap-2.5">
+            <div className="bg-turmeric-50/80 border border-turmeric-200 rounded-2xl p-4 flex items-start gap-2.5">
               <Info className="w-4 h-4 text-turmeric-700 shrink-0 mt-0.5" />
-              <div className="text-xs text-turmeric-950 leading-relaxed">
-                <span className="font-bold block">
-                  {isHindi ? 'मूल्य निर्धारण का आधार:' : 'Price Calculation Rationale:'}
-                </span>
-                <span>
-                  {isHindi && analysisResult.priceBand.rationaleHi 
-                    ? analysisResult.priceBand.rationaleHi 
-                    : analysisResult.priceBand.rationale}
-                </span>
+              <div className="text-xs text-turmeric-950 leading-relaxed space-y-1.5 w-full">
+                <div>
+                  <span className="font-bold block">
+                    {isHindi ? 'मूल्य निर्धारण का आधार:' : 'Price Calculation Rationale:'}
+                  </span>
+                  <span>
+                    {isHindi && analysisResult.priceBand.rationaleHi 
+                      ? analysisResult.priceBand.rationaleHi 
+                      : analysisResult.priceBand.rationale}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-turmeric-200 font-semibold text-turmeric-900 flex items-center gap-2">
+                  <Package className="w-3.5 h-3.5 text-turmeric-700 shrink-0" />
+                  <span>
+                    {isHindi
+                      ? `बैच गणना: ₹${finalPrice.toLocaleString('en-IN')} (प्रति नग) × ${stockQuantity} नग = ₹${(finalPrice * stockQuantity).toLocaleString('en-IN')} कुल कारीगर पारिश्रमिक`
+                      : `Batch Valuation: ₹${finalPrice.toLocaleString('en-IN')} / piece × ${stockQuantity} pieces = ₹${(finalPrice * stockQuantity).toLocaleString('en-IN')} total craft value`}
+                  </span>
+                </div>
               </div>
             </div>
 

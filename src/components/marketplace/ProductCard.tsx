@@ -40,9 +40,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* In-Stock Pill */}
-        <div className="absolute bottom-2.5 right-2.5 bg-indigo-900/80 backdrop-blur-md text-white text-[11px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+        <div className={`absolute bottom-2.5 right-2.5 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs ${
+          product.stockQuantity <= 0 || product.status === 'sold'
+            ? 'bg-purple-900/90 border border-purple-400/30'
+            : product.stockQuantity <= 5
+            ? 'bg-terracotta-600/95 border border-terracotta-400/40 animate-pulse'
+            : 'bg-indigo-900/85 border border-indigo-400/30'
+        }`}>
           <Package className="w-3 h-3" />
-          <span>{product.stockQuantity} {t('common.pieces')}</span>
+          <span>
+            {product.stockQuantity <= 0 || product.status === 'sold'
+              ? (isHindi ? 'बिक चुका है (0 शेष)' : 'Sold Out')
+              : product.stockQuantity <= 5
+              ? (isHindi ? `केवल ${product.stockQuantity} नग शेष` : `🔥 Only ${product.stockQuantity} left`)
+              : (isHindi ? `${product.stockQuantity} नग उपलब्ध` : `${product.stockQuantity} in stock`)}
+          </span>
         </div>
       </Link>
 
@@ -78,8 +90,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <span className="font-serif font-bold text-base sm:text-lg text-indigo-950">
                 ₹{product.finalPrice.toLocaleString('en-IN')}
               </span>
-              <span className="text-[11px] text-stone-500">
-                (₹{product.priceMin} - ₹{product.priceMax})
+              <span className="text-[10px] text-stone-500 font-medium">
+                / {isHindi ? 'नग' : 'piece'}
               </span>
             </div>
           </div>

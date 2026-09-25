@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { fetchProductById, markProductAsSoldRecord, deleteProductRecord } from '../../lib/firebase';
+import { purchaseProduct } from '../../lib/api';
 import { ContactModal } from '../../components/marketplace/ContactModal';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -23,7 +24,11 @@ import {
   Volume2, 
   User,
   CheckCircle2,
-  Trash2
+  Trash2,
+  Minus,
+  Plus,
+  ShoppingBag,
+  X
 } from 'lucide-react';
 
 export const ProductDetailPage: React.FC = () => {
@@ -38,6 +43,22 @@ export const ProductDetailPage: React.FC = () => {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [contactChannel, setContactChannel] = useState<InquiryChannel>('chat');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Buyer Direct Purchase & Stock States
+  const [purchaseQty, setPurchaseQty] = useState<number>(1);
+  const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchaseReceipt, setPurchaseReceipt] = useState<{
+    quantityPurchased: number;
+    remainingStock: number;
+    totalAmount: number;
+    orderId?: string;
+  } | null>(null);
+
+  const [buyerName, setBuyerName] = useState(currentUser?.name || '');
+  const [buyerPhone, setBuyerPhone] = useState(currentUser?.phone || '');
+  const [buyerAddress, setBuyerAddress] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'upi' | 'cod'>('upi');
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -72,6 +93,75 @@ export const ProductDetailPage: React.FC = () => {
   const isOwner = Boolean(
     currentUser && (currentUser.id === product.artisanId || currentUser.id === product.ownerId)
   );
+
+  useEffect(() => {
+    const handleStoreUpdate = async () => {
+      if (!id) return;
+      const found = await fetchProductById(id);
+      if (found) {
+        setProduct(found);
+      }
+    };
+    window.addEventListener('kaarigar_store_updated', handleStoreUpdate);
+    return () => window.removeEventListener('kaarigar_store_updated', handleStoreUpdate);
+  }, [id]);
+
+  const handlePurchaseOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
+    if (!buyerName.trim() || !buyerPhone.trim()) {
+      showToast({
+        type: 'error',
+        title: isHindi ? 'विवरण आवश्यक' : 'Details Required',
+        message: isHindi ? 'कृपया अपना नाम और फ़ोन नंबर दर्ज करें।' : 'Please enter your name and phone number.'
+      });
+      return;
+    }
+
+    if (purchaseQty > product.stockQuantity) {
+      showToast({
+        type: 'error',
+        title: isHindi ? 'अपर्याप्त स्टॉक' : 'Insufficient Stock',
+        message: isHindi
+          ? `केवल ${product.stockQuantity} नग कार्यशाला में उपलब्ध हैं।`
+          : `Only ${product.stockQuantity} piece(s) available in workshop.`
+      });
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      const res = await purchaseProduct(product.id, purchaseQty, {
+        name: buyerName.trim(),
+        phone: buyerPhone.trim(),
+        address: buyerAddress.trim() || 'Direct Workshop Delivery'
+      });
+
+      setProduct(res.product);
+      setPurchaseReceipt({
+        quantityPurchased: purchaseQty,
+        remainingStock: res.remainingStock,
+        totalAmount: product.finalPrice * purchaseQty,
+        orderId: `ORD-${Date.now().toString(36).toUpperCase()}`
+      });
+
+      showToast({
+        type: 'success',
+        title: isHindi ? 'आर्डर सफलतापूर्वक दर्ज!' : 'Order Placed Directly!',
+        message: isHindi
+          ? `आपने ${purchaseQty} नग खरीदे। कार्यशाला में अब ${res.remainingStock} नग शेष हैं।`
+          : `You purchased ${purchaseQty} piece(s). ${res.remainingStock} pieces left in stock.`
+      });
+    } catch (err: any) {
+      showToast({
+        type: 'error',
+        title: isHindi ? 'खरीद विफल' : 'Purchase Failed',
+        message: err.message || 'Could not complete purchase. Please try again.'
+      });
+    } finally {
+      setIsPurchasing(false);
+    }
+  };
 
   const handleMarkSold = async () => {
     if (!product) return;
@@ -217,38 +307,62 @@ export const ProductDetailPage: React.FC = () => {
             {description}
           </p>
 
-          {/* Fair Price Band Card */}
-          <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 shadow-craft space-y-2">
+          {/* Fair Price Band & Workshop Stock Card */}
+          <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 shadow-craft space-y-3">
             <span className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
               {t('marketplace.fairPrice')}
             </span>
-            <div className="flex items-baseline gap-3">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <span className="font-serif text-3xl sm:text-4xl font-bold text-indigo-950">
                 ₹{product.finalPrice.toLocaleString('en-IN')}
               </span>
-              <span className="text-xs text-stone-500 font-medium">
-                (Fair Band: ₹{product.priceMin} - ₹{product.priceMax})
+              <span className="text-sm font-semibold text-stone-500">
+                / {isHindi ? 'नग' : 'piece'}
+              </span>
+              <span className="text-xs text-stone-500 font-medium ml-1">
+                (Fair Band: ₹{product.priceMin} - ₹{product.priceMax} per piece)
               </span>
             </div>
+
+            {/* Live Stock Availability Indicator */}
+            <div className="pt-2 border-t border-paper-200">
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs ${
+                product.stockQuantity <= 0 || product.status === 'sold'
+                  ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                  : product.stockQuantity <= 5
+                  ? 'bg-terracotta-100 text-terracotta-900 border border-terracotta-300 animate-pulse'
+                  : 'bg-emerald-50 text-emerald-900 border border-emerald-300'
+              }`}>
+                <Package className="w-4 h-4 text-turmeric-700 shrink-0" />
+                <span>
+                  {product.stockQuantity <= 0 || product.status === 'sold'
+                    ? (isHindi ? 'बिक चुका है (0 नग शेष)' : 'Out of Stock / Sold Out (0 pieces left)')
+                    : product.stockQuantity <= 5
+                    ? (isHindi ? `🔥 केवल ${product.stockQuantity} नग कार्यशाला में शेष!` : `🔥 Urgent: Only ${product.stockQuantity} piece${product.stockQuantity > 1 ? 's' : ''} left in workshop stock!`)
+                    : (isHindi ? `✓ उपलब्ध स्टॉक: ${product.stockQuantity} नग तुरंत तैयार` : `✓ In Stock: ${product.stockQuantity} pieces ready in workshop`)}
+                </span>
+              </div>
+            </div>
+
             <div className="text-xs text-emerald-800 font-medium flex items-center gap-1.5 pt-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>100% of payment goes directly to master artisan workshop.</span>
             </div>
           </div>
 
-          {/* 3 Contact Actions Panel or Sold Out Notice */}
-          {product.status === 'sold' ? (
+          {/* Direct Buy / Purchase Action Panel or Sold Out Notice */}
+          {product.status === 'sold' || product.stockQuantity <= 0 ? (
             <div className="bg-purple-50 border border-purple-200 rounded-3xl p-6 text-center space-y-2.5 shadow-xs">
               <div className="w-12 h-12 rounded-full bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center mx-auto">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <h3 className="font-serif font-bold text-lg text-purple-950">
-                {isHindi ? 'यह शिल्प बिक चुका है' : 'This Craft Has Been Sold'}
+                {isHindi ? 'यह शिल्प बिक चुका है' : 'This Craft Has Been Sold Out'}
               </h3>
               <p className="text-xs text-purple-800 max-w-sm mx-auto leading-relaxed">
                 {isHindi 
-                  ? 'यह अनूठी हस्तकला किसी कला प्रेमी द्वारा ख़रीदी जा चुकी है। अन्य प्रामाणिक शिल्पों के लिए बाज़ार ब्राउज़ करें।' 
-                  : 'This authentic handcrafted heirloom has already been purchased by a patron. Explore our marketplace for more master craftworks.'}
+                  ? 'यह अनूठी हस्तकला पूरी तरह बिक चुकी है (0 नग शेष)। अन्य प्रामाणिक शिल्पों के लिए बाज़ार ब्राउज़ करें।' 
+                  : 'All handcrafted units for this heirloom have been purchased by patrons (0 pieces left). Explore our marketplace for more master craftworks.'}
               </p>
               <Button
                 variant="outline"
@@ -260,6 +374,85 @@ export const ProductDetailPage: React.FC = () => {
               </Button>
             </div>
           ) : (
+            <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 sm:p-6 shadow-craft space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-stone-500 uppercase tracking-wider block">
+                    {isHindi ? 'खरीद संख्या चुनें' : 'Select Quantity to Buy'}
+                  </span>
+                  <span className="text-xs text-stone-600 font-medium">
+                    {isHindi ? `कार्यशाला में उपलब्ध: ${product.stockQuantity} नग` : `Workshop Stock: ${product.stockQuantity} pieces left`}
+                  </span>
+                </div>
+
+                {/* Quantity Stepper */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPurchaseQty((prev) => Math.max(1, prev - 1))}
+                    disabled={purchaseQty <= 1}
+                    className="w-10 h-10 rounded-xl bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold border border-paper-300 flex items-center justify-center cursor-pointer shadow-xs active:scale-95 disabled:opacity-30 transition-transform tap-target-accessible"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+
+                  <span className="w-10 text-center font-serif text-xl font-bold text-indigo-950">
+                    {purchaseQty}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPurchaseQty((prev) => Math.min(product.stockQuantity, prev + 1))}
+                    disabled={purchaseQty >= product.stockQuantity}
+                    className="w-10 h-10 rounded-xl bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold border border-paper-300 flex items-center justify-center cursor-pointer shadow-xs active:scale-95 disabled:opacity-30 transition-transform tap-target-accessible"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Live Price Calculation Banner */}
+              <div className="p-3.5 rounded-2xl bg-paper-50 border border-paper-200 flex items-center justify-between gap-3 text-xs">
+                <div>
+                  <span className="text-stone-500 block">{isHindi ? 'कुल देय राशि:' : 'Total Payable:'}</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-serif text-2xl font-bold text-terracotta-600">
+                      ₹{(product.finalPrice * purchaseQty).toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[11px] text-stone-500">
+                      ({purchaseQty} {purchaseQty === 1 ? 'piece' : 'pieces'} × ₹{product.finalPrice.toLocaleString('en-IN')})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-stone-500 block">{isHindi ? 'खरीद बाद शेष:' : 'Stock left after order:'}</span>
+                  <span className="font-bold text-indigo-950 text-sm">
+                    {product.stockQuantity - purchaseQty} {t('common.pieces')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Direct Buy Button */}
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                onClick={() => {
+                  setPurchaseReceipt(null);
+                  setIsBuyModalOpen(true);
+                }}
+                leftIcon={<ShoppingBag className="w-5 h-5 text-turmeric-300" />}
+                className="w-full font-bold text-base py-4 shadow-craft-md cursor-pointer"
+              >
+                {isHindi
+                  ? `सीधे खरीदें (${purchaseQty} नग — ₹${(product.finalPrice * purchaseQty).toLocaleString('en-IN')})`
+                  : `Buy Now (${purchaseQty} ${purchaseQty === 1 ? 'piece' : 'pieces'} — ₹${(product.finalPrice * purchaseQty).toLocaleString('en-IN')})`}
+              </Button>
+            </div>
+          )}
             <div className="bg-paper-200/80 border border-paper-300 rounded-3xl p-5 shadow-craft space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-serif text-sm font-bold text-indigo-950">
@@ -300,7 +493,6 @@ export const ProductDetailPage: React.FC = () => {
                 </button>
               </div>
             </div>
-          )}
 
           {/* Artisan Profile Mini Card */}
           <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 shadow-craft flex items-center justify-between gap-4">
@@ -404,6 +596,314 @@ export const ProductDetailPage: React.FC = () => {
         onClose={() => setIsContactOpen(false)}
         defaultChannel={contactChannel}
       />
+
+      {/* Direct Artisan Purchase Modal */}
+      {isBuyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-paper-50 rounded-3xl border border-paper-300 shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-paper-100 border-b border-paper-300 flex items-center justify-between">
+              <div>
+                <h3 className="font-serif font-bold text-lg text-indigo-950 flex items-center gap-2">
+                  <ShoppingBag className="w-5 h-5 text-terracotta-600" />
+                  <span>
+                    {purchaseReceipt
+                      ? (isHindi ? 'आर्डर सफलतापूर्वक दर्ज!' : 'Order Placed Directly!')
+                      : (isHindi ? 'कारीगर से सीधे खरीदें' : 'Direct Artisan Purchase')}
+                  </span>
+                </h3>
+                <p className="text-xs text-stone-500">
+                  {purchaseReceipt
+                    ? (isHindi ? 'कारीगर को आपका विवरण भेज दिया गया है' : 'Order received by craftsman workshop')
+                    : (isHindi ? `100% भुगतान सीधे ${product.artisanName} को जाएगा` : `100% of proceeds go directly to ${product.artisanName}`)}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBuyModalOpen(false);
+                  setPurchaseReceipt(null);
+                }}
+                className="w-8 h-8 rounded-full bg-paper-200 hover:bg-paper-300 text-stone-600 flex items-center justify-center cursor-pointer transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5">
+              {purchaseReceipt ? (
+                /* Success Receipt View */
+                <div className="space-y-4 text-center py-2">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                    <CheckCircle2 className="w-9 h-9" />
+                  </div>
+
+                  <div>
+                    <h4 className="font-serif font-bold text-xl text-indigo-950">
+                      {isHindi ? 'खरीद सफल रही!' : 'Order Confirmed!'}
+                    </h4>
+                    <span className="text-xs font-mono font-bold text-terracotta-600 uppercase tracking-widest block mt-0.5">
+                      {purchaseReceipt.orderId}
+                    </span>
+                  </div>
+
+                  {/* Stock Deduction Highlight Banner */}
+                  <div className={`p-4 rounded-2xl border text-left flex items-start gap-3 shadow-xs ${
+                    purchaseReceipt.remainingStock === 0
+                      ? 'bg-amber-50 border-amber-300 text-amber-950'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-950'
+                  }`}>
+                    <Package className="w-6 h-6 text-terracotta-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-sm">
+                        {isHindi ? 'कार्यशाला स्टॉक अपडेट:' : 'Live Workshop Stock Updated:'}
+                      </div>
+                      <div className="text-xs mt-0.5 leading-relaxed">
+                        {isHindi
+                          ? `आपने ${purchaseReceipt.quantityPurchased} नग खरीदे। `
+                          : `You bought ${purchaseReceipt.quantityPurchased} piece(s). `}
+                        <strong className="text-terracotta-700 underline font-semibold">
+                          {purchaseReceipt.remainingStock === 0
+                            ? (isHindi ? 'अब सभी नग बिक चुके हैं (0 नग शेष - Sold Out)' : '0 pieces left — Craft is now Sold Out!')
+                            : (isHindi ? `अब केवल ${purchaseReceipt.remainingStock} नग शेष हैं।` : `Now ${purchaseReceipt.remainingStock} piece(s) remaining in stock.`)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Details Receipt Box */}
+                  <div className="bg-paper-100 border border-paper-200 rounded-2xl p-4 text-left space-y-2.5 text-xs text-stone-700">
+                    <div className="flex justify-between pb-2 border-b border-paper-200 font-medium">
+                      <span>{isHindi ? 'शिल्प का नाम' : 'Craft'}</span>
+                      <span className="font-bold text-indigo-950">{title}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{isHindi ? 'खरीदी गई संख्या' : 'Quantity Purchased'}</span>
+                      <span className="font-bold text-indigo-950">{purchaseReceipt.quantityPurchased} {t('common.pieces')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{isHindi ? 'प्रति नग मूल्य' : 'Unit Price'}</span>
+                      <span>₹{product.finalPrice.toLocaleString('en-IN')} / piece</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-paper-200 text-sm font-bold text-indigo-950">
+                      <span>{isHindi ? 'कुल राशि' : 'Total Amount'}</span>
+                      <span className="text-terracotta-600 font-serif text-lg">
+                        ₹{purchaseReceipt.totalAmount.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-stone-500 bg-paper-100 p-3 rounded-xl border border-paper-200">
+                    {isHindi
+                      ? `कारीगर (${product.artisanName}) को आपका आर्डर और फ़ोन नंबर (${buyerPhone}) प्राप्त हो गया है। वे सीधे आपसे संपर्क करेंगे।`
+                      : `The craftsman (${product.artisanName}) has received your order. Delivery will be coordinated directly via ${buyerPhone}.`}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="lg"
+                    onClick={() => {
+                      setIsBuyModalOpen(false);
+                      setPurchaseReceipt(null);
+                    }}
+                    className="w-full font-bold cursor-pointer"
+                  >
+                    {isHindi ? 'पूर्ण (Done)' : 'Continue Exploring Crafts'}
+                  </Button>
+                </div>
+              ) : (
+                /* Checkout Form View */
+                <form onSubmit={handlePurchaseOrder} className="space-y-4">
+                  {/* Item Summary Card */}
+                  <div className="p-3.5 bg-paper-100 border border-paper-300 rounded-2xl flex items-center gap-3">
+                    <img
+                      src={product.images[0] || 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=400&q=80'}
+                      alt={title}
+                      className="w-16 h-16 rounded-xl object-cover border border-paper-300 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-serif font-bold text-sm text-indigo-950 truncate">
+                        {title}
+                      </h4>
+                      <p className="text-xs text-stone-500 truncate">
+                        {product.artisanName} • {product.artisanLocation}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-serif font-bold text-terracotta-600">
+                          ₹{product.finalPrice.toLocaleString('en-IN')} / piece
+                        </span>
+                        <span className="text-[11px] text-stone-500">
+                          ({product.stockQuantity} in stock)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quantity Selector inside checkout */}
+                  <div className="p-3.5 rounded-2xl bg-paper-100 border border-paper-200 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-indigo-950">
+                        {isHindi ? 'खरीद संख्या (Pieces to Buy)' : 'Number of Pieces to Buy'}
+                      </div>
+                      <div className="text-[11px] text-stone-500">
+                        {isHindi
+                          ? `खरीद बाद शेष: ${product.stockQuantity - purchaseQty} नग`
+                          : `Remaining stock after purchase: ${product.stockQuantity - purchaseQty} piece(s)`}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseQty((p) => Math.max(1, p - 1))}
+                        disabled={purchaseQty <= 1}
+                        className="w-8 h-8 rounded-lg bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold border border-paper-300 flex items-center justify-center cursor-pointer disabled:opacity-30"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-8 text-center font-bold text-base text-indigo-950">
+                        {purchaseQty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseQty((p) => Math.min(product.stockQuantity, p + 1))}
+                        disabled={purchaseQty >= product.stockQuantity}
+                        className="w-8 h-8 rounded-lg bg-paper-200 hover:bg-paper-300 text-indigo-950 font-bold border border-paper-300 flex items-center justify-center cursor-pointer disabled:opacity-30"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Buyer Name */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-700 block">
+                      {isHindi ? 'आपका नाम (Buyer Name) *' : 'Your Name *'}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={buyerName}
+                      onChange={(e) => setBuyerName(e.target.value)}
+                      placeholder={isHindi ? 'उदा. राजेश शर्मा' : 'e.g., Rajesh Sharma'}
+                      className="w-full px-3.5 py-2.5 bg-paper-100 border border-paper-300 rounded-xl text-sm text-indigo-950 focus:outline-hidden focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500"
+                    />
+                  </div>
+
+                  {/* Buyer Phone */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-700 block">
+                      {isHindi ? 'मोबाइल नंबर (Phone / WhatsApp) *' : 'Mobile Number (Phone / WhatsApp) *'}
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                      <input
+                        type="tel"
+                        required
+                        value={buyerPhone}
+                        onChange={(e) => setBuyerPhone(e.target.value)}
+                        placeholder="9876543210"
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-paper-100 border border-paper-300 rounded-xl text-sm text-indigo-950 focus:outline-hidden focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Delivery Address */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-stone-700 block">
+                      {isHindi ? 'डिलीवरी पता / शहर (Delivery Address)' : 'Delivery Address & City'}
+                    </label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                      <input
+                        type="text"
+                        value={buyerAddress}
+                        onChange={(e) => setBuyerAddress(e.target.value)}
+                        placeholder={isHindi ? 'उदा. 12, रामबाग रोड, जयपुर' : 'e.g., 12, Rambagh Road, Jaipur'}
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-paper-100 border border-paper-300 rounded-xl text-sm text-indigo-950 focus:outline-hidden focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Mode Selection */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-stone-700 block">
+                      {isHindi ? 'भुगतान का प्रकार (Payment Method)' : 'Payment Method'}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMode('upi')}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          paymentMode === 'upi'
+                            ? 'bg-terracotta-50/70 border-terracotta-500 ring-1 ring-terracotta-500'
+                            : 'bg-paper-100 border-paper-300 hover:bg-paper-200'
+                        }`}
+                      >
+                        <div className="font-bold text-xs text-indigo-950">
+                          {isHindi ? '📱 सीधे UPI' : '📱 Direct UPI'}
+                        </div>
+                        <div className="text-[10px] text-stone-500 mt-0.5">
+                          GPay / PhonePe / Paytm
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMode('cod')}
+                        className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                          paymentMode === 'cod'
+                            ? 'bg-terracotta-50/70 border-terracotta-500 ring-1 ring-terracotta-500'
+                            : 'bg-paper-100 border-paper-300 hover:bg-paper-200'
+                        }`}
+                      >
+                        <div className="font-bold text-xs text-indigo-950">
+                          {isHindi ? '📦 डिलीवरी पर नकद' : '📦 Cash on Delivery'}
+                        </div>
+                        <div className="text-[10px] text-stone-500 mt-0.5">
+                          Pay upon receipt
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Total Amount & Submit Button */}
+                  <div className="pt-2 border-t border-paper-200 space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-stone-600 font-medium">
+                        {isHindi ? `कुल देय (${purchaseQty} नग)` : `Total Payable (${purchaseQty} pc)`}
+                      </span>
+                      <div className="font-serif text-2xl font-bold text-terracotta-600">
+                        ₹{(product.finalPrice * purchaseQty).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="lg"
+                      disabled={isPurchasing}
+                      className="w-full font-bold py-3.5 shadow-craft-md cursor-pointer"
+                    >
+                      {isPurchasing
+                        ? (isHindi ? 'आर्डर दर्ज हो रहा है...' : 'Confirming Order...')
+                        : (isHindi
+                            ? `आर्डर कन्फर्म करें (₹${(product.finalPrice * purchaseQty).toLocaleString('en-IN')})`
+                            : `Confirm Order (₹${(product.finalPrice * purchaseQty).toLocaleString('en-IN')})`)}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

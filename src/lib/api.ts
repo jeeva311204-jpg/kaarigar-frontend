@@ -6,7 +6,8 @@ import {
   saveProductRecord, 
   saveInquiryRecord, 
   fetchInquiries,
-  replyToInquiryRecord
+  replyToInquiryRecord,
+  purchaseProductRecord
 } from './firebase';
 import { salesRecords6Months, categoryDistribution } from './mockData';
 import { analyzeCraftPhoto } from './aiVisionAnalyzer';
@@ -378,7 +379,7 @@ export async function analyzeProduct(
   }
 
   // Deep AI Vision Analysis & Studio Image Enhancement
-  const visualAnalysis = await analyzeCraftPhoto(imageSource, payload.category, onProgress);
+  const visualAnalysis = await analyzeCraftPhoto(imageSource, payload.category, onProgress, false, payload.quantity || 1);
 
   // Combine detected materials with any user-selected materials
   const combinedMaterials = Array.from(new Set([...visualAnalysis.materials, ...(payload.materials || [])]));
@@ -420,6 +421,14 @@ export async function getProductById(id: string): Promise<Product | undefined> {
 
 export async function publishProduct(product: Product): Promise<void> {
   await saveProductRecord(product);
+}
+
+export async function purchaseProduct(
+  productId: string,
+  quantityToBuy: number = 1,
+  buyerInfo?: { name: string; phone: string; address?: string }
+): Promise<{ success: boolean; remainingStock: number; product: Product }> {
+  return purchaseProductRecord(productId, quantityToBuy, buyerInfo);
 }
 
 export async function sendInquiry(inquiryData: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Promise<Inquiry> {

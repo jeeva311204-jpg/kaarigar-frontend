@@ -43,7 +43,7 @@ export const initialProducts: Product[] = [
     artisanPhone: '+91 98290 44211',
     craftOrigin: 'Jaipur Heritage Cluster, Rajasthan (GI #33)',
     materials: ['Quartz Stone Powder', 'Fuller’s Earth (Multani Mitti)', 'Cobalt Oxide', 'Copper Glaze'],
-    stockQuantity: 12,
+    stockQuantity: 50,
     status: 'live',
     giTagged: true,
     giTagNumber: 'GI-RAJ-0033',

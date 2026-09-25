@@ -279,6 +279,87 @@ export async function markProductAsSoldRecord(productId: string): Promise<boolea
   return true;
 }
 
+export async function purchaseProductRecord(
+  productId: string,
+  quantityToBuy: number = 1,
+  buyerInfo?: { name: string; phone: string; address?: string }
+): Promise<{ success: boolean; remainingStock: number; product: Product }> {
+  const prods = getLocalStore<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
+  const targetIdx = prods.findIndex(p => p.id === productId);
+  if (targetIdx < 0) {
+    throw new Error('Product not found in catalog');
+  }
+
+  const currentStock = prods[targetIdx].stockQuantity || 0;
+  if (currentStock < quantityToBuy) {
+    throw new Error(`Insufficient stock. Only ${currentStock} piece(s) available.`);
+  }
+
+  const newStock = Math.max(0, currentStock - quantityToBuy);
+  prods[targetIdx] = {
+    ...prods[targetIdx],
+    stockQuantity: newStock,
+    status: newStock === 0 ? 'sold' : prods[targetIdx].status,
+    soldAt: newStock === 0 ? new Date().toISOString() : prods[targetIdx].soldAt
+  };
+  setLocalStore(STORAGE_KEYS.PRODUCTS, prods);
+
+  // Log order inquiry for artisan
+  const inqs = getLocalStore<Inquiry[]>(STORAGE_KEYS.INQUIRIES, initialInquiries);
+  const newOrder: Inquiry = {
+    id: `ord-${Date.now().toString(36)}`,
+    productId,
+    productTitle: prods[targetIdx].title,
+    productImage: (prods[targetIdx].images && prods[targetIdx].images[0]) || '',
+    artisanId: prods[targetIdx].artisanId,
+    buyerName: buyerInfo?.name || 'Verified Patron',
+    buyerPhone: buyerInfo?.phone || '+91 98201 12345',
+    channel: 'order',
+    message: `Direct Order: ${quantityToBuy} piece(s) purchased for ₹${(prods[targetIdx].finalPrice * quantityToBuy).toLocaleString('en-IN')}. Delivery Address: ${buyerInfo?.address || 'Direct Patron Pickup'}. Stock remaining: ${newStock} pieces.`,
+    status: 'new',
+    createdAt: new Date().toISOString(),
+    replies: []
+  };
+  inqs.unshift(newOrder);
+  setLocalStore(STORAGE_KEYS.INQUIRIES, inqs);
+
+  // Sync to Backend Server API
+  try {
+    await fetch(`/api/products/${productId}/purchase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quantity: quantityToBuy,
+        buyerName: buyerInfo?.name,
+        buyerPhone: buyerInfo?.phone,
+        buyerAddress: buyerInfo?.address
+      })
+    });
+  } catch (apiErr) {
+    console.warn('Backend purchase sync skipped:', apiErr);
+  }
+
+  // Sync to Firestore if configured
+  if (db && isFirebaseConfigured) {
+    try {
+      const ref = doc(db, 'products', productId);
+      await updateDoc(ref, {
+        stockQuantity: newStock,
+        status: newStock === 0 ? 'sold' : prods[targetIdx].status,
+        soldAt: newStock === 0 ? new Date().toISOString() : null
+      });
+    } catch (e) {
+      console.warn('Firestore purchase update failed:', e);
+    }
+  }
+
+  return {
+    success: true,
+    remainingStock: newStock,
+    product: prods[targetIdx]
+  };
+}
+
 export async function deleteProductRecord(productId: string): Promise<boolean> {
   // Remove from local reactive store
   const prods = getLocalStore<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);

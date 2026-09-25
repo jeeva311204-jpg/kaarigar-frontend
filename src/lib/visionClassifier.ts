@@ -69,7 +69,9 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
  */
 export async function inspectImagePixels(
   imageSource: string | File,
-  fallbackCategory: CraftCategory = 'pottery'
+  fallbackCategory: CraftCategory = 'pottery',
+  forceArtisanCraft: boolean = false,
+  quantity: number = 1
 ): Promise<VisualInspectionResult> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -88,7 +90,7 @@ export async function inspectImagePixels(
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          resolve(getDefaultResult(fallbackCategory));
+          resolve(getDefaultResult(fallbackCategory, quantity));
           return;
         }
 
@@ -790,7 +792,7 @@ export async function inspectImagePixels(
         }
 
         if (candidateScores[0].score >= 0.15 && skyDaylightRatio < 0.20) {
-          resolve(getDefaultResult(candidateScores[0].cat));
+          resolve(getDefaultResult(candidateScores[0].cat, quantity));
         } else {
           resolve(createInvalidCraftResult(
             'Non-Craft Item / Outdoor Infrastructure',
@@ -801,12 +803,12 @@ export async function inspectImagePixels(
         }
       } catch (err) {
         console.warn('Pixel inspection error, falling back:', err);
-        resolve(getDefaultResult(fallbackCategory));
+        resolve(getDefaultResult(fallbackCategory, quantity));
       }
     };
 
     img.onerror = () => {
-      resolve(getDefaultResult(fallbackCategory));
+      resolve(getDefaultResult(fallbackCategory, quantity));
     };
   });
 }
@@ -844,7 +846,7 @@ function createInvalidCraftResult(
   };
 }
 
-function getDefaultResult(cat: CraftCategory): VisualInspectionResult {
+function getDefaultResult(cat: CraftCategory, quantity: number = 1): VisualInspectionResult {
   const defaults: Record<CraftCategory, VisualInspectionResult> = {
     pottery: {
       detectedCategory: 'pottery',
@@ -1310,8 +1312,27 @@ function getDefaultResult(cat: CraftCategory): VisualInspectionResult {
   };
 
   const res = defaults[cat] || defaults.pottery;
+  const qty = Math.max(1, quantity || 1);
+  const baseSuggested = res.priceBand.suggested;
+  const baseMin = res.priceBand.min;
+  const baseMax = res.priceBand.max;
+
+  const updatedPriceBand = {
+    ...res.priceBand,
+    quantity: qty,
+    unitSuggested: baseSuggested,
+    totalBatchSuggested: baseSuggested * qty,
+    rationale: qty > 1
+      ? `${res.priceBand.rationale} (₹${baseSuggested.toLocaleString('en-IN')}/piece). Full batch valuation for ${qty} pieces: ₹${(baseSuggested * qty).toLocaleString('en-IN')}.`
+      : res.priceBand.rationale,
+    rationaleHi: (res.priceBand.rationaleHi && qty > 1)
+      ? `${res.priceBand.rationaleHi} (प्रति नग ₹${baseSuggested.toLocaleString('en-IN')})। आपके ${qty} नगों के पूरे बैच का कुल बाज़ार मूल्य: ₹${(baseSuggested * qty).toLocaleString('en-IN')}।`
+      : res.priceBand.rationaleHi
+  };
+
   return {
     ...res,
+    priceBand: updatedPriceBand,
     isValidCraft: cat !== 'other',
     isProduct: cat !== 'other'
   };

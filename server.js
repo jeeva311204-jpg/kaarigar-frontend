@@ -549,6 +549,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/analyze-product' && req.method === 'POST') {
     const body = await parseBody(req);
     let category = body.category || 'pottery';
+    const quantity = Math.max(1, parseInt(body.quantity, 10) || 1);
     const rawMaterials = Array.isArray(body.materials) ? body.materials : [];
     const forceArtisanCraft = Boolean(body.forceArtisanCraft || body.isArtisanConfirmed);
 
@@ -1305,15 +1306,28 @@ Return ONLY a valid JSON object matching the following structure:
       const resolvedState = isKettle ? 'Rajasthan (Jaipur) / Bihar (Madhubani)' : craftKb.state;
       const resolvedStateOrigin = isKettle ? 'Jaipur Metal Craft & Mithila Folk Painting Cluster' : craftKb.stateOrigin;
 
+      const baseMin = isKettle ? 850 : (isBasket ? 650 : blended.priceRangeMin);
+      const baseMax = isKettle ? 1650 : (isBasket ? 1250 : blended.priceRangeMax);
+      const baseSuggested = isKettle ? 1250 : (isBasket ? 890 : blended.suggestedPrice);
+      const baseRationale = isKettle
+        ? 'Calculated based on spun aluminum kettle fabrication, multi-coat enamel priming, 6-8 hours of intricate fine-brush folk painting with Matsya motifs, and heat-resistant lacquer curing.'
+        : (isBasket
+          ? 'Based on 10-14 hours of manual palm frond splitting, sun-curing, concentric coil weaving, and organic botanical dyeing.'
+          : blended.rationale);
+
       const priceBandObj = {
-        min: isKettle ? 850 : (isBasket ? 650 : blended.priceRangeMin),
-        max: isKettle ? 1650 : (isBasket ? 1250 : blended.priceRangeMax),
-        suggested: isKettle ? 1250 : (isBasket ? 890 : blended.suggestedPrice),
-        rationale: isKettle
-          ? 'Calculated based on spun aluminum kettle fabrication, multi-coat enamel priming, 6-8 hours of intricate fine-brush folk painting with Matsya motifs, and heat-resistant lacquer curing.'
-          : (isBasket
-            ? 'Based on 10-14 hours of manual palm frond splitting, sun-curing, concentric coil weaving, and organic botanical dyeing.'
-            : blended.rationale),
+        min: baseMin,
+        max: baseMax,
+        suggested: baseSuggested,
+        quantity: quantity,
+        unitSuggested: baseSuggested,
+        totalBatchSuggested: baseSuggested * quantity,
+        rationale: quantity > 1
+          ? `${baseRationale} (₹${baseSuggested.toLocaleString('en-IN')}/piece). Full batch valuation for ${quantity} pieces: ₹${(baseSuggested * quantity).toLocaleString('en-IN')}.`
+          : baseRationale,
+        rationaleHi: quantity > 1
+          ? `प्रति नग ₹${baseSuggested.toLocaleString('en-IN')} (कारीगर श्रम व सामग्री)। आपके ${quantity} नगों के पूरे बैच का कुल बाज़ार मूल्य: ₹${(baseSuggested * quantity).toLocaleString('en-IN')}।`
+          : undefined,
         breakdown: isKettle
           ? {
               rawMaterialsCost: 380,
@@ -1606,7 +1620,12 @@ Return ONLY a valid JSON object matching the following structure:
         min: blendedPricing.priceRangeMin,
         max: blendedPricing.priceRangeMax,
         suggested: blendedPricing.suggestedPrice,
-        rationale: blendedPricing.rationale
+        quantity: quantity,
+        unitSuggested: blendedPricing.suggestedPrice,
+        totalBatchSuggested: blendedPricing.suggestedPrice * quantity,
+        rationale: quantity > 1
+          ? `${blendedPricing.rationale} (₹${blendedPricing.suggestedPrice.toLocaleString('en-IN')}/piece). Full batch valuation for ${quantity} pieces: ₹${(blendedPricing.suggestedPrice * quantity).toLocaleString('en-IN')}.`
+          : blendedPricing.rationale
       },
       confidenceScore: 0.96,
       geminiSuccess: Boolean(geminiAnalysis),
@@ -1737,6 +1756,69 @@ Return ONLY a valid JSON object matching the following structure:
     sendJson(res, 200, {
       success: true,
       message: 'Product marked as sold successfully',
+      product
+    });
+    return;
+  }
+
+  // Buyer Direct Purchase Route (POST /api/products/:id/purchase)
+  if (pathname.startsWith('/api/products/') && pathname.endsWith('/purchase') && req.method === 'POST') {
+    const id = pathname.replace('/api/products/', '').replace('/purchase', '');
+    const products = readJsonFile(PRODUCTS_FILE, []);
+    const productIdx = products.findIndex(p => p.id === id);
+    if (productIdx < 0) {
+      sendJson(res, 404, { error: `Product with id ${id} not found` });
+      return;
+    }
+
+    const product = products[productIdx];
+    const body = await parseBody(req);
+    const qtyToBuy = Math.max(1, parseInt(body.quantity, 10) || 1);
+    const currentStock = Number(product.stockQuantity) || 0;
+
+    if (currentStock < qtyToBuy) {
+      sendJson(res, 400, {
+        error: `Insufficient stock. Only ${currentStock} piece(s) available.`,
+        availableStock: currentStock
+      });
+      return;
+    }
+
+    const newStock = Math.max(0, currentStock - qtyToBuy);
+    product.stockQuantity = newStock;
+    if (newStock === 0) {
+      product.status = 'sold';
+      product.soldAt = new Date().toISOString();
+    }
+    product.updatedAt = new Date().toISOString();
+    products[productIdx] = product;
+    writeJsonFile(PRODUCTS_FILE, products);
+
+    // Record order in inquiries.json
+    const inquiries = readJsonFile(INQUIRIES_FILE, []);
+    const orderRecord = {
+      id: `ord-${Date.now().toString(36)}`,
+      productId: product.id,
+      productTitle: product.title,
+      productImage: (product.images && product.images[0]) || '',
+      artisanId: product.artisanId,
+      buyerName: body.buyerName || 'Verified Patron',
+      buyerPhone: body.buyerPhone || '+91 98201 12345',
+      channel: 'order',
+      message: `Direct Order: ${qtyToBuy} piece(s) purchased for ₹${(product.finalPrice * qtyToBuy).toLocaleString('en-IN')}. Delivery Address: ${body.buyerAddress || 'Direct Patron Delivery'}. Stock remaining: ${newStock} pieces.`,
+      status: 'new',
+      createdAt: new Date().toISOString(),
+      replies: []
+    };
+    inquiries.unshift(orderRecord);
+    writeJsonFile(INQUIRIES_FILE, inquiries);
+
+    sendJson(res, 200, {
+      success: true,
+      message: `Successfully purchased ${qtyToBuy} piece(s). Stock remaining: ${newStock}`,
+      quantityPurchased: qtyToBuy,
+      remainingStock: newStock,
+      orderId: orderRecord.id,
       product
     });
     return;

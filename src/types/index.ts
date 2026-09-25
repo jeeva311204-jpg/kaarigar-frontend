@@ -25,6 +25,9 @@ export interface PriceBand {
   suggested: number;
   rationale: string;
   rationaleHi?: string;
+  quantity?: number;
+  unitSuggested?: number;
+  totalBatchSuggested?: number;
   breakdown?: {
     rawMaterialsCost: number;
     laborHours: number;
@@ -66,7 +69,7 @@ export interface Product {
   soldAt?: string;
 }
 
-export type InquiryChannel = 'chat' | 'call' | 'sms';
+export type InquiryChannel = 'chat' | 'call' | 'sms' | 'order';
 export type InquiryStatus = 'new' | 'contacted' | 'resolved';
 
 export interface InquiryReply {

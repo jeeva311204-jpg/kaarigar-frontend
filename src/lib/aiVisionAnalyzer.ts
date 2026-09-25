@@ -344,7 +344,8 @@ export async function analyzeCraftPhoto(
   imageSource: string | File,
   preferredCategory?: CraftCategory,
   onProgress?: (stage: number, stageName: string) => void,
-  forceArtisanCraft?: boolean
+  forceArtisanCraft?: boolean,
+  quantity: number = 1
 ): Promise<PhotoAnalysisDetails> {
   // Stage 1: AI Image Enhancement & Lighting Correction
   onProgress?.(1, 'Enhancing craft photo lighting, lifting shadows & color grading...');
@@ -352,7 +353,7 @@ export async function analyzeCraftPhoto(
 
   // Stage 2: Deep Computer Vision Pixel & Texture Analysis directly from image
   onProgress?.(2, 'Inspecting fiber patterns, radial coiling geometry & material pigments...');
-  const visualScan = await inspectImagePixels(imageSource, preferredCategory);
+  const visualScan = await inspectImagePixels(imageSource, preferredCategory, forceArtisanCraft, quantity);
 
   let liveAiResult: Partial<PhotoAnalysisDetails> | null = null;
 
@@ -367,7 +368,8 @@ export async function analyzeCraftPhoto(
       body: JSON.stringify({
         image: base64Img,
         category: preferredCategory || visualScan.detectedCategory || 'pottery',
-        forceArtisanCraft: Boolean(forceArtisanCraft)
+        forceArtisanCraft: Boolean(forceArtisanCraft),
+        quantity: quantity
       })
     });
 
@@ -726,7 +728,8 @@ export async function analyzeCraftPhoto(
 export async function reanalyzeAsArtisanCraft(
   imageSource: string | File,
   category: CraftCategory = 'pottery',
-  onProgress?: (stage: number, stageName: string) => void
+  onProgress?: (stage: number, stageName: string) => void,
+  quantity: number = 1
 ): Promise<PhotoAnalysisDetails> {
-  return analyzeCraftPhoto(imageSource, category, onProgress, true);
+  return analyzeCraftPhoto(imageSource, category, onProgress, true, quantity);
 }
