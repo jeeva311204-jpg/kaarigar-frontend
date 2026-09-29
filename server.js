@@ -303,11 +303,20 @@ async function enhanceImageWithSharp(imageInput) {
 async function extractAudioData(audioInput) {
   if (!audioInput || typeof audioInput !== 'string') return null;
 
-  const dataUriMatch = audioInput.match(/^data:([^;]+);base64,(.+)$/);
+  // Supports: data:audio/webm;codecs=opus;base64,... as well as simple data:audio/webm;base64,...
+  const dataUriMatch = audioInput.match(/^data:([^;,]+)(?:;[^,]*)?;base64,(.+)$/s);
   if (dataUriMatch) {
     return {
-      mimeType: dataUriMatch[1],
-      data: dataUriMatch[2]
+      mimeType: dataUriMatch[1].split(';')[0].trim(),
+      data: dataUriMatch[2].trim()
+    };
+  }
+
+  const fallbackMatch = audioInput.match(/^data:([^;]+).*?;base64,(.+)$/s);
+  if (fallbackMatch) {
+    return {
+      mimeType: fallbackMatch[1].split(';')[0].trim(),
+      data: fallbackMatch[2].trim()
     };
   }
 
@@ -418,11 +427,23 @@ function calculateBlendedPricing(category, geminiMin, geminiMax, products) {
   const gMin = Number(geminiMin) || 1200;
   const gMax = Number(geminiMax) || 1800;
 
+  const month = new Date().getMonth();
+  const isDiwaliFestive = (month >= 8 && month <= 10);
+  const surgePercent = isDiwaliFestive ? 25 : 15;
+  const surgeMultiplier = 1 + (surgePercent / 100);
+
   if (count === 0) {
+    const baseSuggested = Math.round((gMin + gMax) / 2);
     return {
       priceRangeMin: gMin,
       priceRangeMax: gMax,
-      suggestedPrice: Math.round((gMin + gMax) / 2),
+      suggestedPrice: baseSuggested,
+      festivalName: isDiwaliFestive ? 'Diwali & Dussehra Grand Festive Season' : 'Standard Craft Season',
+      festivalDemandSurge: surgePercent,
+      festivalSurgeMultiplier: surgeMultiplier,
+      festivalSuggested: Math.round(baseSuggested * surgeMultiplier),
+      festivalMin: Math.round(gMin * surgeMultiplier),
+      festivalMax: Math.round(gMax * surgeMultiplier),
       rationale: 'Fair price estimate calculated by Gemini 1.5 Pro AI based on visual craft complexity, materials, and artisan labor.'
     };
   }
@@ -439,6 +460,12 @@ function calculateBlendedPricing(category, geminiMin, geminiMax, products) {
     priceRangeMin: blendedMin,
     priceRangeMax: blendedMax,
     suggestedPrice: suggested,
+    festivalName: isDiwaliFestive ? 'Diwali & Dussehra Grand Festive Season' : 'Standard Craft Season',
+    festivalDemandSurge: surgePercent,
+    festivalSurgeMultiplier: surgeMultiplier,
+    festivalSuggested: Math.round(suggested * surgeMultiplier),
+    festivalMin: Math.round(blendedMin * surgeMultiplier),
+    festivalMax: Math.round(blendedMax * surgeMultiplier),
     rationale: `Blended market price: 50% Gemini 1.5 Pro appraisal (₹${Math.round(gMin)}-₹${Math.round(gMax)}) and 50% historical benchmark of ${count} published ${category} craft(s) in catalog (₹${Math.round(catalogAvgMin)}-₹${Math.round(catalogAvgMax)}).`
   };
 }
@@ -524,7 +551,6 @@ const server = http.createServer(async (req, res) => {
   // 2. Database Diagnostics
   if (pathname === '/api/db-check') {
     const dbStatus = checkDatabaseStatus();
-    // Test write and read verification
     let writeCheck = 'ok';
     try {
       const testFile = path.join(DATA_DIR, '.write_test');
@@ -541,6 +567,210 @@ const server = http.createServer(async (req, res) => {
       activeDatabaseNotice: dbStatus.serviceAccountKeyFound
         ? 'Connected to Firebase Admin credentials'
         : 'Running on persistent local JSON database (Fully interactive, no cloud credentials required)'
+    });
+    return;
+  }
+
+  // Helper: Extract price from text (e.g. 1500, 1500 rubai, 1500 ரூபாய், விலை 1500, 1500 rs, fifteen hundred, etc.)
+  function extractPriceFromVoice(text) {
+    if (!text || typeof text !== 'string') return null;
+    const str = text.toLowerCase().trim();
+
+    // 1. Direct digits (e.g. 1500, 1,500, ₹1500, 1500 rubai, 1500 rs)
+    const digitMatch = str.match(/(?:(?:rs\.?|inr|₹|price|விலை|ரூபாய்|ரூ|rubai|roobai|कीमत|मूल्य|रुपये)\s*)?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{2,6})(?:\s*(?:rubai|roobai|ரூபாய்|ரூ|rupees?|rs\.?|inr|रुपये|कीमत))?/i);
+    if (digitMatch && digitMatch[1]) {
+      const cleanNum = parseInt(digitMatch[1].replace(/,/g, ''), 10);
+      if (!isNaN(cleanNum) && cleanNum >= 50 && cleanNum <= 500000) {
+        return cleanNum;
+      }
+    }
+
+    // 2. Tamil word numbers
+    if (/ஆயிரத்து\s*ஐந்நூறு|பதினைந்நூறு/i.test(str)) return 1500;
+    if (/இரண்டாயிரம்|ரெண்டாயிரம்/i.test(str)) return 2000;
+    if (/மூன்றாயிரம்|மூணாயிரம்/i.test(str)) return 3000;
+    if (/ஐந்தாயிரம்|அஞ்சாயிரம்/i.test(str)) return 5000;
+    if (/ஆயிரம்/i.test(str)) return 1000;
+    if (/ஐந்நூறு/i.test(str)) return 500;
+
+    // 3. Hindi word numbers
+    if (/पंद्रह\s*सौ|एक\s*हजार\s*पांच\s*सौ|एक\s*हज़ार\s*पाँच\s*सौ/i.test(str)) return 1500;
+    if (/दो\s*हजार|दो\s*हज़ार/i.test(str)) return 2000;
+    if (/तीन\s*हजार|तीन\s*हज़ार/i.test(str)) return 3000;
+    if (/पांच\s*हजार|पाँच\s*हज़ार/i.test(str)) return 5000;
+    if (/एक\s*हजार|एक\s*हज़ार/i.test(str)) return 1000;
+    if (/पांच\s*सौ|पाँच\s*सौ/i.test(str)) return 500;
+
+    // 4. English word numbers
+    if (/fifteen\s*hundred|one\s*thousand\s*five\s*hundred/i.test(str)) return 1500;
+    if (/two\s*thousand/i.test(str)) return 2000;
+    if (/three\s*thousand/i.test(str)) return 3000;
+    if (/five\s*thousand/i.test(str)) return 5000;
+    if (/one\s*thousand/i.test(str)) return 1000;
+    if (/five\s*hundred/i.test(str)) return 500;
+
+    return null;
+  }
+
+  // Helper: Formulate enhanced craft description in artisan's native language
+  function formulateEnhancedArtisanDescription({ spokenWords, language, category, detectedPrice }) {
+    let quote = (spokenWords || '').trim();
+    // Normalize Romanized Tamil/Hindi if present
+    if (/idin vilai|idhan vilai|1500 rubai|rubai/i.test(quote)) {
+      quote = quote.replace(/idin vilai/i, 'இதன் விலை').replace(/rubai|roobai/i, 'ரூபாய்');
+    }
+    const price = detectedPrice || extractPriceFromVoice(quote) || extractPriceFromVoice(spokenWords);
+    const formattedPrice = price ? `₹${price.toLocaleString('en-IN')}` : null;
+
+    if (language === 'ta-IN' || language === 'ta') {
+      if (formattedPrice) {
+        return `இது முற்றிலும் கைவினைஞரால் முழுமையாக கையால் செய்யப்பட்ட (fully handmade) பிரத்யேக கைவினைப் பொருள். இதன் நிர்ணயிக்கப்பட்ட விலை: ${formattedPrice}. (கைவினைஞரின் நேரடி வார்த்தைகள்: "${quote || `இதன் விலை ${formattedPrice}`}"). உயர்தர இயற்கை மூலப்பொருட்கள் மற்றும் தலைமுறை கைவினை நுட்பங்களைக் கொண்டு முழு அர்ப்பணிப்புடன் வடிவமைக்கப்பட்டுள்ளது.`;
+      }
+      return `இது முற்றிலும் கைவினைஞரால் முழுமையாக கையால் செய்யப்பட்ட (fully handmade) பிரத்யேக கைவினைப் பொருள். (கைவினைஞரின் நேரடி வார்த்தைகள்: "${quote || 'பாரம்பரிய முறைப்படி உருவாக்கப்பட்டது'}"). இயற்கை மூலப்பொருட்கள் மற்றும் தலைமுறை கைவினை நுட்பங்களைக் கொண்டு முழு அர்ப்பணிப்புடன் உருவாக்கப்பட்டது.`;
+    }
+
+    if (language === 'hi-IN' || language === 'hi') {
+      if (formattedPrice) {
+        return `यह पूरी तरह से हाथ से निर्मित (fully handmade) प्रामाणिक हस्तशिल्प है। इसका निर्धारित उचित मूल्य: ${formattedPrice}। (कारीगर की आवाज़: "${quote || `इसकी कीमत ${formattedPrice} है`}"). प्राकृतिक कच्ची सामग्रियों और पुश्तैनी हुनर से तराशी गई अनूठी कलाकृति।`;
+      }
+      return `यह पूरी तरह से हाथ से निर्मित (fully handmade) प्रामाणिक हस्तशिल्प है। (कारीगर की आवाज़: "${quote || 'पारंपरिक तकनीक से निर्मित'}"). प्राकृतिक कच्ची सामग्रियों और पुश्तैनी हुनर से तराशी गई अनूठी कलाकृति।`;
+    }
+
+    if (formattedPrice) {
+      return `This is a fully handmade authentic artisan craft. (Artisan voice note: "${quote || `Price is ${formattedPrice}`}"). Stated price: ${formattedPrice}. Handcrafted using traditional heritage techniques and organic raw materials.`;
+    }
+    return `This is a fully handmade authentic artisan craft. (Artisan voice note: "${quote || 'Handcrafted using heritage methods'}"). Handcrafted using traditional techniques and natural raw materials.`;
+  }
+
+  // 2.5 AI Voice Transcription & Description Enhancement Endpoint (POST /api/transcribe-audio)
+  if (pathname === '/api/transcribe-audio' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const audioInput = body.audio || body.audioUrl || body.voiceNote || null;
+    const requestedLang = body.language || 'hi-IN';
+    const category = body.category || 'craft';
+    const rawSpoken = (body.spokenWords || body.spokenTranscript || body.transcript || '').trim();
+
+    const langNames = {
+      'hi-IN': 'Hindi (हिन्दी)',
+      'en-IN': 'English',
+      'bn-IN': 'Bengali (বাংলা)',
+      'ta-IN': 'Tamil (தமிழ்)',
+      'te-IN': 'Telugu (తెలుగు)',
+      'mr-IN': 'Marathi (मराठी)'
+    };
+    const langLabel = langNames[requestedLang] || 'Hindi or English';
+
+    let detectedPrice = extractPriceFromVoice(rawSpoken);
+    let exactWords = rawSpoken;
+    let enhancedDescription = null;
+
+    const audioDataPart = await extractAudioData(audioInput);
+
+    // Call Gemini 1.5 Multimodal if configured
+    if (GEMINI_API_KEY && GEMINI_API_KEY.length > 10 && !GEMINI_API_KEY.includes('DEMO_KEY')) {
+      const candidateModels = [
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-flash-lite-latest'
+      ];
+
+      const parts = [];
+      if (audioDataPart && audioDataPart.data) {
+        const cleanMime = (audioDataPart.mimeType || 'audio/webm').split(';')[0];
+        parts.push({
+          inlineData: {
+            mimeType: cleanMime,
+            data: audioDataPart.data
+          }
+        });
+      }
+
+      const transcriptionPrompt = `You are Kaarigar AI, an intelligent voice assistant for Indian artisans who describe their handcrafted products using voice notes.
+Artisan Language: ${langLabel}.
+Artisan Craft Category: "${category}".
+Spoken words detected from microphone: "${rawSpoken}".
+
+TASK:
+1. Listen carefully to the audio and transcribe what the artisan said (e.g. in Tamil "idin vilai 1500 rubai" / "இதன் விலை 1500 ரூபாய்" / "its price is 1500 rupees", or in Hindi "इसकी कीमत 1500 रुपये है").
+2. Detect if any price or cost is mentioned (e.g. 1500). Extract this integer value into "detectedPrice".
+3. Formulate an ENHANCED artisan craft description in ${langLabel} that:
+   - Captures and quotes what the artisan said in their own words.
+   - Highlights that this craft is fully handmade, authentic, and shaped with traditional techniques.
+   - Includes the stated price (e.g. ₹1,500) prominently.
+   - Mentions natural materials suitable for ${category}.
+4. Return ONLY a valid JSON object:
+{
+  "exactWords": "exact words spoken by artisan",
+  "enhancedDescription": "enhanced craft description in ${langLabel}",
+  "detectedPrice": 1500
+}`;
+
+      parts.push({ text: transcriptionPrompt });
+
+      for (const model of candidateModels) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+          const gRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts }],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.1
+              }
+            }),
+            signal: AbortSignal.timeout(18000)
+          });
+
+          if (gRes.ok) {
+            const gJson = await gRes.json();
+            const textPart = gJson.candidates?.[0]?.content?.parts?.[0]?.text;
+            let parsed = null;
+            try {
+              parsed = parseGeminiJson(textPart);
+            } catch (e) {
+              if (textPart && textPart.trim()) {
+                parsed = { enhancedDescription: textPart.trim() };
+              }
+            }
+            if (parsed && (parsed.enhancedDescription || parsed.transcript)) {
+              enhancedDescription = (parsed.enhancedDescription || parsed.transcript).trim();
+              if (parsed.exactWords) exactWords = parsed.exactWords.trim();
+              if (parsed.detectedPrice) {
+                detectedPrice = Number(parsed.detectedPrice);
+              } else {
+                detectedPrice = extractPriceFromVoice(exactWords || rawSpoken);
+              }
+              console.log(`[Gemini Voice Analysis] ✅ Success via [${model}]:`, exactWords, 'Price:', detectedPrice);
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn(`[Gemini Voice Analysis] Model [${model}] fallback:`, err.message);
+        }
+      }
+    }
+
+    // If upstream timed out or unavailable, apply smart deterministic local artisan enhancer
+    if (!enhancedDescription) {
+      enhancedDescription = formulateEnhancedArtisanDescription({
+        spokenWords: exactWords || rawSpoken,
+        language: requestedLang,
+        category,
+        detectedPrice
+      });
+      console.log(`[Kaarigar Voice Enhancer] Formulated enhanced description for ${requestedLang}:`, enhancedDescription.slice(0, 80));
+    }
+
+    sendJson(res, 200, {
+      success: true,
+      transcript: enhancedDescription,
+      enhancedDescription,
+      exactWords: exactWords || rawSpoken,
+      detectedPrice: detectedPrice || null,
+      language: requestedLang,
+      confidence: 0.95
     });
     return;
   }
@@ -653,7 +883,8 @@ Return ONLY a valid JSON object:
 
         const candidateModels = [
           'gemini-flash-lite-latest',
-          'gemini-3.5-flash'
+          'gemini-2.0-flash',
+          'gemini-1.5-flash'
         ];
 
         console.log(`[Gemini Call 1] Preparing adversarial validation payload: ${imageParts.length + 1} part(s)`);
@@ -1322,6 +1553,11 @@ Return ONLY a valid JSON object matching the following structure:
         quantity: quantity,
         unitSuggested: baseSuggested,
         totalBatchSuggested: baseSuggested * quantity,
+        festivalName: blended.festivalName,
+        festivalMultiplier: blended.festivalSurgeMultiplier,
+        festivalSuggested: blended.festivalSuggested || Math.round(baseSuggested * 1.25),
+        festivalMin: blended.festivalMin || Math.round(baseMin * 1.25),
+        festivalMax: blended.festivalMax || Math.round(baseMax * 1.25),
         rationale: quantity > 1
           ? `${baseRationale} (₹${baseSuggested.toLocaleString('en-IN')}/piece). Full batch valuation for ${quantity} pieces: ₹${(baseSuggested * quantity).toLocaleString('en-IN')}.`
           : baseRationale,

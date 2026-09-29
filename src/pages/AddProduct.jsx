@@ -96,14 +96,23 @@ export const AddProduct = () => {
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // Disable / prevent proceeding until description is non-empty
-      if (!voiceData.description || !voiceData.description.trim()) {
+      const hasText = Boolean(voiceData.description && voiceData.description.trim());
+      const hasVoice = Boolean(voiceData.audioBlob || voiceData.audioUrl);
+      if (!hasText && !hasVoice) {
         showToast({
           type: 'error',
-          title: 'Description Required',
-          message: 'Please provide a voice recording or type a craft description before continuing.'
+          title: isHindi ? 'विवरण या आवाज़ आवश्यक है' : 'Voice or Description Required',
+          message: isHindi 
+            ? 'कृपया अपनी आवाज़ रिकॉर्ड करें या शिल्प का विवरण लिखें।' 
+            : 'Please record your voice or type a craft description before continuing.'
         });
         return;
+      }
+      if (!hasText && hasVoice) {
+        const fallbackDesc = isHindi 
+          ? 'कारीगर द्वारा रिकॉर्ड किया गया आवाज़ संदेश (पारंपरिक हस्तशिल्प और विरासत कलाकृति)' 
+          : 'Artisan voice-over craft description (authentic handcrafted heritage craft)';
+        setVoiceData((prev) => ({ ...prev, description: fallbackDesc }));
       }
       setCurrentStep(3);
     }
@@ -202,7 +211,9 @@ export const AddProduct = () => {
           quantity,
           audioTranscript: voiceData.description || result.audioTranscript,
           language: voiceData.language,
-          audioUrl: voiceData.audioUrl
+          audioUrl: voiceData.audioUrl,
+          exactWords: voiceData.exactWords,
+          detectedPrice: voiceData.detectedPrice
         }
       };
 
@@ -313,7 +324,15 @@ export const AddProduct = () => {
         {/* Step 2: Voice / Text Description */}
         {currentStep === 2 && (
           <VoiceTextStep
+            initialLanguage={
+              language === 'ta' ? 'ta-IN' :
+              language === 'te' ? 'te-IN' :
+              language === 'mr' ? 'mr-IN' :
+              language === 'bn' ? 'bn-IN' :
+              language === 'hi' ? 'hi-IN' : 'en-IN'
+            }
             value={voiceData}
+            category={category}
             onChange={(data) => {
               setVoiceData(data);
             }}
@@ -346,18 +365,26 @@ export const AddProduct = () => {
               {t('common.back')}
             </Button>
 
-            {/* Requirement 3: Disable Continue button until description is non-empty */}
-            <Button
-              type="button"
-              variant="primary"
-              size="lg"
-              onClick={handleNext}
-              rightIcon={<ArrowRight className="w-5 h-5" />}
-              className="font-bold min-w-[140px]"
-              disabled={currentStep === 2 && (!voiceData.description || !voiceData.description.trim())}
-            >
-              {currentStep === 2 ? 'Continue' : t('common.next')}
-            </Button>
+            <div className="flex items-center gap-3">
+              {currentStep === 2 && (voiceData.audioBlob || voiceData.audioUrl) && (
+                <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{isHindi ? 'आवाज़ रिकॉर्डेड' : 'Voice Recorded'}</span>
+                </span>
+              )}
+
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                onClick={handleNext}
+                rightIcon={<ArrowRight className="w-5 h-5" />}
+                className="font-bold min-w-[140px]"
+                disabled={currentStep === 2 && !((voiceData.description && voiceData.description.trim()) || voiceData.audioBlob || voiceData.audioUrl)}
+              >
+                {currentStep === 2 ? (isHindi ? 'आगे बढ़ें (Continue)' : 'Continue') : t('common.next')}
+              </Button>
+            </div>
           </div>
         )}
       </div>

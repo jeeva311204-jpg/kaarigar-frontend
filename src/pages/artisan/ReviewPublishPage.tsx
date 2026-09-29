@@ -24,8 +24,18 @@ import {
   Wand2,
   X,
   ExternalLink,
-  Package
+  Package,
+  TrendingUp,
+  AlertTriangle,
+  Flame,
+  Calendar,
+  Sparkle
 } from 'lucide-react';
+import { 
+  getFestivalSituation, 
+  analyzeArtisanPrice, 
+  speakArtisanPriceAdvice 
+} from '../../lib/festivalPricing';
 
 export const ReviewPublishPage: React.FC = () => {
   const { t, isHindi } = useTranslation();
@@ -41,9 +51,9 @@ export const ReviewPublishPage: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [culturalStory, setCulturalStory] = useState('');
-  const [finalPrice, setFinalPrice] = useState<number>(1550);
-  const [minPrice, setMinPrice] = useState<number>(1350);
-  const [maxPrice, setMaxPrice] = useState<number>(1850);
+  const [finalPrice, setFinalPrice] = useState<number>(1500);
+  const [minPrice, setMinPrice] = useState<number>(1200);
+  const [maxPrice, setMaxPrice] = useState<number>(1800);
   const [stockQuantity, setStockQuantity] = useState<number>(1);
   const [materials, setMaterials] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -52,6 +62,9 @@ export const ReviewPublishPage: React.FC = () => {
   const [newMaterialInput, setNewMaterialInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [useFestivalSurge, setUseFestivalSurge] = useState(true);
+  const [isSpeakingAdvice, setIsSpeakingAdvice] = useState(false);
+  const [artisanStatedPrice, setArtisanStatedPrice] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -72,11 +85,25 @@ export const ReviewPublishPage: React.FC = () => {
           return;
         }
 
+        const marketBaseline = res.priceBand;
+        const bMin = Number(marketBaseline?.min) || 1200;
+        const bMax = Number(marketBaseline?.max) || 1800;
+        const defaultSuggested = Number(marketBaseline?.suggested) || Math.round((bMin + bMax) / 2);
+
+        const detectedP = parsed.wizardData?.detectedPrice 
+          ? Number(parsed.wizardData.detectedPrice)
+          : null;
+        if (detectedP) {
+          setArtisanStatedPrice(detectedP);
+        }
+
+        const initialPrice = detectedP || defaultSuggested;
+
         setTitle(isHindi && res.suggestedTitleHi ? res.suggestedTitleHi : res.suggestedTitle);
-        setCulturalStory(isHindi && res.culturalStoryHi ? res.culturalStoryHi : res.culturalStory);
-        setFinalPrice(res.priceBand?.suggested || 1500);
-        setMinPrice(res.priceBand?.min || 1200);
-        setMaxPrice(res.priceBand?.max || 1800);
+        setCulturalStory(parsed.wizardData?.audioTranscript || (isHindi && res.culturalStoryHi ? res.culturalStoryHi : res.culturalStory));
+        setFinalPrice(initialPrice);
+        setMinPrice(bMin);
+        setMaxPrice(bMax);
         const initialQty = Math.max(1, Number(parsed.wizardData?.quantity) || Number(res.priceBand?.quantity) || 1);
         setStockQuantity(initialQty);
         setMaterials(res.materials || []);
@@ -93,6 +120,25 @@ export const ReviewPublishPage: React.FC = () => {
   if (!reviewData) return null;
 
   const { analysisResult, wizardData } = reviewData;
+
+  const festivalSituation = getFestivalSituation(analysisResult.detectedCategory || 'pottery');
+  const priceEvaluation = analyzeArtisanPrice({
+    artisanPrice: finalPrice,
+    marketBand: analysisResult.priceBand,
+    category: analysisResult.detectedCategory,
+    festivalSituation,
+    useFestivalSurge,
+    language: isHindi ? 'hi-IN' : (wizardData?.language || 'en-IN')
+  });
+
+  const handleSpeakPriceAdvice = () => {
+    setIsSpeakingAdvice(true);
+    speakArtisanPriceAdvice(
+      priceEvaluation.explanationVoice,
+      isHindi ? 'hi-IN' : (wizardData?.language || 'en-IN')
+    );
+    setTimeout(() => setIsSpeakingAdvice(false), 5000);
+  };
 
   const handleNudgePrice = (delta: number) => {
     setFinalPrice((prev) => Math.max(minPrice - 200, prev + delta));
@@ -488,19 +534,37 @@ export const ReviewPublishPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Fair Market Price Band & Batch Valuation Card */}
+          {/* Fair Market Price Band, Festival Demand & Advisory Card */}
           <div className="bg-paper-100 border border-paper-300 rounded-3xl p-5 sm:p-6 shadow-craft space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
-                <h3 className="font-serif text-base sm:text-lg font-bold text-indigo-950">
-                  {t('review.priceBandTitle')}
-                </h3>
-                <div className="text-xs text-stone-500 mt-0.5">
-                  {t('review.fairBand')}: <span className="font-bold text-indigo-950">₹{minPrice} - ₹{maxPrice}</span> / {isHindi ? 'नग' : 'piece'}
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif text-base sm:text-lg font-bold text-indigo-950">
+                    {t('review.priceBandTitle')}
+                  </h3>
+                  {festivalSituation.isFestivalSeason && useFestivalSurge && (
+                    <span className="px-2 py-0.5 rounded-full bg-turmeric-100 border border-turmeric-300 text-turmeric-900 text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                      <Flame className="w-3 h-3 text-terracotta-600" />
+                      +{festivalSituation.demandSurgePercent}% Festive Peak
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-stone-500 mt-1">
+                  {useFestivalSurge && festivalSituation.isFestivalSeason ? (
+                    <span>
+                      {isHindi ? 'त्योहारी बाज़ार दायरा:' : 'Festive Fair Band:'}{' '}
+                      <span className="font-bold text-indigo-950">₹{priceEvaluation.festivalMin} - ₹{priceEvaluation.festivalMax}</span> / {isHindi ? 'नग' : 'piece'}
+                    </span>
+                  ) : (
+                    <span>
+                      {t('review.fairBand')}:{' '}
+                      <span className="font-bold text-indigo-950">₹{priceEvaluation.marketMin} - ₹{priceEvaluation.marketMax}</span> / {isHindi ? 'नग' : 'piece'}
+                    </span>
+                  )}
                 </div>
                 {stockQuantity > 1 && (
                   <div className="text-[11px] text-terracotta-700 font-medium mt-0.5">
-                    {isHindi ? 'पूरे बैच का उचित दायरा:' : 'Full batch fair band:'} ₹{(minPrice * stockQuantity).toLocaleString('en-IN')} - ₹{(maxPrice * stockQuantity).toLocaleString('en-IN')}
+                    {isHindi ? 'पूरे बैच का उचित दायरा:' : 'Full batch fair band:'} ₹{((useFestivalSurge && festivalSituation.isFestivalSeason ? priceEvaluation.festivalMin : priceEvaluation.marketMin) * stockQuantity).toLocaleString('en-IN')} - ₹{((useFestivalSurge && festivalSituation.isFestivalSeason ? priceEvaluation.festivalMax : priceEvaluation.marketMax) * stockQuantity).toLocaleString('en-IN')}
                   </div>
                 )}
               </div>
@@ -518,6 +582,170 @@ export const ReviewPublishPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* 1. FESTIVAL DEMAND SITUATION INTELLIGENCE BANNER */}
+            {festivalSituation.isFestivalSeason && (
+              <div className="bg-gradient-to-r from-amber-50 via-turmeric-50 to-orange-50 border border-turmeric-300 rounded-2xl p-4 space-y-2.5 shadow-xs">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🪔</span>
+                    <div>
+                      <h4 className="font-serif font-bold text-xs sm:text-sm text-amber-950">
+                        {isHindi ? festivalSituation.festivalNameHi : festivalSituation.festivalName}
+                      </h4>
+                      <span className="text-[11px] text-amber-800 font-medium">
+                        {festivalSituation.seasonPeriod}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-turmeric-200/80 text-turmeric-950 text-xs font-bold border border-turmeric-400/50">
+                      +{festivalSituation.demandSurgePercent}% Buyer Demand
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUseFestivalSurge(!useFestivalSurge)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        useFestivalSurge
+                          ? 'bg-terracotta text-white border-terracotta shadow-xs'
+                          : 'bg-white text-stone-600 border-paper-300 hover:bg-paper-50'
+                      }`}
+                    >
+                      {useFestivalSurge 
+                        ? (isHindi ? 'त्योहारी मूल्य चालू' : 'Festive Pricing ON') 
+                        : (isHindi ? 'सामान्य मूल्य' : 'Standard Pricing')}
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  {isHindi ? festivalSituation.reasoningHi : festivalSituation.reasoning}
+                </p>
+              </div>
+            )}
+
+            {/* 2. REAL-TIME AI PRICE ADVISORY BANNER (HIGH, LOW, FAIR, OR FESTIVAL MATCH) */}
+            <div className={`p-4 rounded-2xl border transition-all space-y-2.5 shadow-xs ${
+              priceEvaluation.level === 'warning'
+                ? 'bg-amber-50/90 border-amber-300 text-amber-950'
+                : priceEvaluation.level === 'info'
+                ? 'bg-blue-50/90 border-blue-300 text-blue-950'
+                : priceEvaluation.level === 'festival'
+                ? 'bg-turmeric-50/90 border-turmeric-300 text-turmeric-950'
+                : 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+            }`}>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  {priceEvaluation.level === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0" />}
+                  {priceEvaluation.level === 'info' && <ShieldCheck className="w-5 h-5 text-blue-700 shrink-0" />}
+                  {priceEvaluation.level === 'festival' && <Flame className="w-5 h-5 text-terracotta-600 shrink-0" />}
+                  {priceEvaluation.level === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />}
+                  <span className="font-bold text-xs sm:text-sm">
+                    {priceEvaluation.label}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold border ${
+                    priceEvaluation.level === 'warning'
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : priceEvaluation.level === 'info'
+                      ? 'bg-blue-100 text-blue-900 border-blue-300'
+                      : priceEvaluation.level === 'festival'
+                      ? 'bg-turmeric-200 text-turmeric-950 border-turmeric-400'
+                      : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  }`}>
+                    {priceEvaluation.badge}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleSpeakPriceAdvice}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      isSpeakingAdvice
+                        ? 'bg-terracotta text-white border-terracotta animate-pulse'
+                        : 'bg-white hover:bg-paper-50 text-indigo-950 border-paper-300'
+                    }`}
+                    title="Listen to AI Voice Advice"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 text-terracotta" />
+                    <span>{isSpeakingAdvice ? (isHindi ? 'बोल रहा है...' : 'Speaking...') : (isHindi ? 'सलाह सुनें' : 'Listen')}</span>
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-xs leading-relaxed">
+                {priceEvaluation.explanation}
+              </p>
+
+              {/* Action Suggestion Button (If Price is High or Low) */}
+              {(priceEvaluation.status === 'HIGH' || priceEvaluation.status === 'LOW') && (
+                <div className="pt-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFinalPrice(priceEvaluation.suggestedPrice)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-white text-xs font-bold shadow-craft cursor-pointer transition-transform active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-turmeric-400" />
+                    <span>
+                      {priceEvaluation.status === 'HIGH'
+                        ? (isHindi ? `उचित मूल्य लागू करें: ₹${priceEvaluation.suggestedPrice.toLocaleString('en-IN')}` : `Apply Suggested Fair Price: ₹${priceEvaluation.suggestedPrice.toLocaleString('en-IN')}`)
+                        : (isHindi ? `मेहनत का सही मूल्य लें: ₹${priceEvaluation.suggestedPrice.toLocaleString('en-IN')}` : `Claim Fair Artisan Value: ₹${priceEvaluation.suggestedPrice.toLocaleString('en-IN')}`)}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. QUICK-SET PRICE PRESET CHIPS */}
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
+                {isHindi ? 'त्वरित मूल्य विकल्प:' : 'Price Presets:'}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setFinalPrice(priceEvaluation.baseFairPrice)}
+                className={`px-3 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                  finalPrice === priceEvaluation.baseFairPrice
+                    ? 'bg-indigo-950 text-white border-indigo-950 font-bold shadow-xs'
+                    : 'bg-paper-50 hover:bg-paper-200 text-stone-700 border-paper-300'
+                }`}
+              >
+                {isHindi ? 'मानक उचित मूल्य:' : 'Standard Fair:'} ₹{priceEvaluation.baseFairPrice.toLocaleString('en-IN')}
+              </button>
+
+              {festivalSituation.isFestivalSeason && (
+                <button
+                  type="button"
+                  onClick={() => setFinalPrice(priceEvaluation.festivalFairPrice)}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                    finalPrice === priceEvaluation.festivalFairPrice
+                      ? 'bg-terracotta text-white border-terracotta font-bold shadow-xs'
+                      : 'bg-paper-50 hover:bg-paper-200 text-stone-700 border-paper-300'
+                  }`}
+                >
+                  <span>🪔</span>
+                  <span>{isHindi ? 'त्योहारी मूल्य:' : 'Festive Surge:'} ₹{priceEvaluation.festivalFairPrice.toLocaleString('en-IN')}</span>
+                </button>
+              )}
+
+              {artisanStatedPrice && (
+                <button
+                  type="button"
+                  onClick={() => setFinalPrice(artisanStatedPrice)}
+                  className={`flex items-center gap-1 px-3 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                    finalPrice === artisanStatedPrice
+                      ? 'bg-stone-800 text-white border-stone-800 font-bold shadow-xs'
+                      : 'bg-paper-50 hover:bg-paper-200 text-stone-700 border-paper-300'
+                  }`}
+                >
+                  <Volume2 className="w-3 h-3 text-terracotta-500" />
+                  <span>{isHindi ? 'आपकी आवाज़ में:' : 'Your Voice:'} ₹{artisanStatedPrice.toLocaleString('en-IN')}</span>
+                </button>
+              )}
             </div>
 
             {/* Total Batch Earnings Formula Calculation Banner */}
@@ -545,15 +773,15 @@ export const ReviewPublishPage: React.FC = () => {
             {/* Interactive Price Slider & Nudge Buttons */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between text-xs text-stone-500 font-medium">
-                <span>Min: ₹{minPrice}</span>
+                <span>Min: ₹{useFestivalSurge && festivalSituation.isFestivalSeason ? priceEvaluation.festivalMin : minPrice}</span>
                 <span className="font-bold text-indigo-950">Unit Price: ₹{finalPrice} / piece</span>
-                <span>Max: ₹{maxPrice + 300}</span>
+                <span>Max: ₹{(useFestivalSurge && festivalSituation.isFestivalSeason ? priceEvaluation.festivalMax : maxPrice) + 400}</span>
               </div>
 
               <input
                 type="range"
-                min={Math.max(200, minPrice - 300)}
-                max={maxPrice + 500}
+                min={Math.max(100, (useFestivalSurge && festivalSituation.isFestivalSeason ? priceEvaluation.festivalMin : minPrice) - 400)}
+                max={(useFestivalSurge && festivalSituation.isFestivalSeason ? priceEvaluation.festivalMax : maxPrice) + 600}
                 step={25}
                 value={finalPrice}
                 onChange={(e) => setFinalPrice(Number(e.target.value))}
@@ -597,6 +825,13 @@ export const ReviewPublishPage: React.FC = () => {
                     {isHindi && analysisResult.priceBand.rationaleHi 
                       ? analysisResult.priceBand.rationaleHi 
                       : analysisResult.priceBand.rationale}
+                    {festivalSituation.isFestivalSeason && useFestivalSurge && (
+                      <span className="block mt-1 font-semibold text-terracotta-800">
+                        {isHindi
+                          ? `🪔 त्योहारी कारक: ${festivalSituation.festivalNameHi} (+${festivalSituation.demandSurgePercent}% मांग वृद्धि) के आधार पर समायोजित।`
+                          : `🪔 Festive Calibration: Calibrated for ${festivalSituation.festivalName} (+${festivalSituation.demandSurgePercent}% active demand surge).`}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-turmeric-200 font-semibold text-turmeric-900 flex items-center gap-2">
@@ -604,7 +839,7 @@ export const ReviewPublishPage: React.FC = () => {
                   <span>
                     {isHindi
                       ? `बैच गणना: ₹${finalPrice.toLocaleString('en-IN')} (प्रति नग) × ${stockQuantity} नग = ₹${(finalPrice * stockQuantity).toLocaleString('en-IN')} कुल कारीगर पारिश्रमिक`
-                      : `Batch Valuation: ₹${finalPrice.toLocaleString('en-IN')} / piece × ${stockQuantity} pieces = ₹${(finalPrice * stockQuantity).toLocaleString('en-IN')} total craft value`}
+                      : `Batch Valuation: ₹${finalPrice.toLocaleString('en-IN')} / piece × ${stockQuantity} pieces = ₹{(finalPrice * stockQuantity).toLocaleString('en-IN')} total craft value`}
                   </span>
                 </div>
               </div>

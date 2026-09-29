@@ -48,11 +48,15 @@ export const AddProductWizard: React.FC = () => {
     description: string;
     audioUrl: string | null;
     audioBlob?: Blob | null;
+    exactWords?: string;
+    detectedPrice?: number | null;
   }>({
     language: 'hi-IN',
     description: '',
     audioUrl: null,
-    audioBlob: null
+    audioBlob: null,
+    exactWords: '',
+    detectedPrice: null
   });
   const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
   const [audioTranscript, setAudioTranscript] = useState<string>('');
@@ -104,13 +108,24 @@ export const AddProductWizard: React.FC = () => {
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      if (!voiceData.description || !voiceData.description.trim()) {
+      const hasText = Boolean(voiceData.description && voiceData.description.trim());
+      const hasVoice = Boolean(voiceData.audioBlob || voiceData.audioUrl);
+      if (!hasText && !hasVoice) {
         showToast({
           type: 'error',
-          title: 'Description Required',
-          message: 'Please provide a voice recording or type a craft description before continuing.'
+          title: isHindi ? 'विवरण या आवाज़ आवश्यक है' : 'Voice or Description Required',
+          message: isHindi 
+            ? 'कृपया अपनी आवाज़ रिकॉर्ड करें या शिल्प का विवरण लिखें।' 
+            : 'Please record your voice or type a craft description before continuing.'
         });
         return;
+      }
+      if (!hasText && hasVoice) {
+        const fallbackDesc = isHindi 
+          ? 'कारीगर द्वारा रिकॉर्ड किया गया आवाज़ संदेश (पारंपरिक हस्तशिल्प और विरासत कलाकृति)' 
+          : 'Artisan voice-over craft description (authentic handcrafted heritage craft)';
+        setVoiceData((prev) => ({ ...prev, description: fallbackDesc }));
+        setAudioTranscript(fallbackDesc);
       }
       setCurrentStep(3);
     }
@@ -251,7 +266,9 @@ export const AddProductWizard: React.FC = () => {
           quantity,
           audioTranscript: voiceData.description || audioTranscript || result.audioTranscript,
           language: voiceData.language,
-          audioUrl: voiceData.audioUrl
+          audioUrl: voiceData.audioUrl,
+          exactWords: voiceData.exactWords,
+          detectedPrice: voiceData.detectedPrice
         }
       };
 
@@ -370,6 +387,7 @@ export const AddProductWizard: React.FC = () => {
               language === 'hi' ? 'hi-IN' : 'en-IN'
             }
             value={voiceData}
+            category={category}
             onChange={(data: any) => {
               setVoiceData(data);
               setVoiceBlob(data.audioBlob || null);
@@ -403,17 +421,26 @@ export const AddProductWizard: React.FC = () => {
               {t('common.back')}
             </Button>
 
-            <Button
-              type="button"
-              variant="primary"
-              size="lg"
-              onClick={handleNext}
-              rightIcon={<ArrowRight className="w-5 h-5" />}
-              className="font-bold min-w-[140px]"
-              disabled={currentStep === 2 && (!voiceData.description || !voiceData.description.trim())}
-            >
-              {currentStep === 2 ? 'Continue' : t('common.next')}
-            </Button>
+            <div className="flex items-center gap-3">
+              {currentStep === 2 && (voiceData.audioBlob || voiceData.audioUrl) && (
+                <span className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{isHindi ? 'आवाज़ रिकॉर्डेड' : 'Voice Recorded'}</span>
+                </span>
+              )}
+
+              <Button
+                type="button"
+                variant="primary"
+                size="lg"
+                onClick={handleNext}
+                rightIcon={<ArrowRight className="w-5 h-5" />}
+                className="font-bold min-w-[140px]"
+                disabled={currentStep === 2 && !((voiceData.description && voiceData.description.trim()) || voiceData.audioBlob || voiceData.audioUrl)}
+              >
+                {currentStep === 2 ? (isHindi ? 'आगे बढ़ें (Continue)' : 'Continue') : t('common.next')}
+              </Button>
+            </div>
           </div>
         )}
       </div>

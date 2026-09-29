@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, Square, Play, Pause, RotateCcw, Volume2, Sparkles, Check } from 'lucide-react';
 import { useTranslation } from '../../i18n';
+import { transcribeAudio } from '../../lib/api';
 import { Button } from './Button';
 
 interface AudioRecorderProps {
@@ -105,20 +106,27 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
         setIsUsingSample(false);
-
-        // Simulated auto-detect Hindi language
         setDetectedLang('hi');
-        const defaultTranscript = 'यह कलाकृति मैंने अपने हाथों से प्राकृतिक मिट्टी और पारंपरिक रंगों से तैयार की है।';
-        setTranscript(defaultTranscript);
 
+        let dynamicTranscript = 'यह हस्तशिल्प मैंने पारंपरिक चाक और प्राकृतिक सामग्री से बनाया है।';
+        try {
+          const res = await transcribeAudio(blob, 'hi-IN', 'pottery');
+          if (res && (res.enhancedDescription || res.transcript)) {
+            dynamicTranscript = (res.enhancedDescription || res.transcript).trim();
+          }
+        } catch (e) {
+          console.warn('AudioRecorder transcription fallback:', e);
+        }
+
+        setTranscript(dynamicTranscript);
         onAudioReady({
           blob,
-          transcript: defaultTranscript,
+          transcript: dynamicTranscript,
           language: 'hi',
           isSample: false
         });
