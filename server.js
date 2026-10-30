@@ -552,6 +552,48 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
+// Static Files Serving Configuration (for Render & production deployments)
+const DIST_DIR = path.join(__dirname, 'dist');
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf'
+};
+
+function serveStaticFile(res, filePath) {
+  try {
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      return false;
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const content = fs.readFileSync(filePath);
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': content.length,
+      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+    });
+    res.end(content);
+    return true;
+  } catch (err) {
+    console.error('Error serving static file:', err);
+    return false;
+  }
+}
+
 // HTTP Server & Request Handler
 export async function handleRequest(req, res) {
   // CORS Preflight
@@ -574,9 +616,23 @@ export async function handleRequest(req, res) {
       pathname = orig.pathname;
     } catch {}
   }
-  if (!pathname.startsWith('/api')) {
-    pathname = `/api${pathname}`;
+
+  // 1. Static asset and SPA frontend serving (for Render and production)
+  if (!pathname.startsWith('/api') && fs.existsSync(DIST_DIR)) {
+    const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+    const candidateFile = path.join(DIST_DIR, safePath);
+    if (serveStaticFile(res, candidateFile)) {
+      return;
+    }
+
+    // Client-side SPA routes fallback to index.html (e.g. /marketplace, /artisan/add)
+    const indexHtml = path.join(DIST_DIR, 'index.html');
+    if (serveStaticFile(res, indexHtml)) {
+      return;
+    }
   }
+
+  // Normalize /api trailing slashes
   if (pathname.length > 4 && pathname.endsWith('/')) {
     pathname = pathname.slice(0, -1);
   }
@@ -2282,5 +2338,4 @@ if (!process.env.VERCEL) {
   });
 }
 
-export { handleRequest };
 export default handleRequest;
