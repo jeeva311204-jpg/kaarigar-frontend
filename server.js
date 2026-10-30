@@ -31,8 +31,8 @@ loadEnv();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
 
-// Data Directory for persistent JSON database
-const DATA_DIR = path.join(__dirname, 'data');
+// Data Directory for persistent JSON database (uses /tmp on Vercel to avoid read-only filesystem issues)
+const DATA_DIR = process.env.VERCEL ? path.join('/tmp', 'data') : path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -42,6 +42,25 @@ const INQUIRIES_FILE = path.join(DATA_DIR, 'inquiries.json');
 
 // Initialize database files if missing
 function initDatabase() {
+  const sourceProductsFile = path.join(__dirname, 'data', 'products.json');
+  const sourceInquiriesFile = path.join(__dirname, 'data', 'inquiries.json');
+
+  if (!fs.existsSync(PRODUCTS_FILE) && fs.existsSync(sourceProductsFile) && sourceProductsFile !== PRODUCTS_FILE) {
+    try {
+      fs.copyFileSync(sourceProductsFile, PRODUCTS_FILE);
+    } catch (e) {
+      console.warn('Could not copy seed products from data/, generating fallback:', e.message);
+    }
+  }
+
+  if (!fs.existsSync(INQUIRIES_FILE) && fs.existsSync(sourceInquiriesFile) && sourceInquiriesFile !== INQUIRIES_FILE) {
+    try {
+      fs.copyFileSync(sourceInquiriesFile, INQUIRIES_FILE);
+    } catch (e) {
+      console.warn('Could not copy seed inquiries from data/, generating fallback:', e.message);
+    }
+  }
+
   if (!fs.existsSync(PRODUCTS_FILE)) {
     const seed = [
       {
@@ -493,6 +512,16 @@ function checkDatabaseStatus() {
 
 // Request Body Parser
 async function parseBody(req) {
+  if (req.body && typeof req.body === 'object') {
+    return req.body;
+  }
+  if (req.body && typeof req.body === 'string') {
+    try {
+      return JSON.parse(req.body);
+    } catch {
+      return { raw: req.body };
+    }
+  }
   return new Promise((resolve) => {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -508,6 +537,12 @@ async function parseBody(req) {
 
 // Send JSON Helper
 function sendJson(res, statusCode, data) {
+  if (typeof res.status === 'function' && typeof res.json === 'function') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(statusCode).json(data);
+  }
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -517,8 +552,8 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
-// HTTP Server
-const server = http.createServer(async (req, res) => {
+// HTTP Server & Request Handler
+export async function handleRequest(req, res) {
   // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -530,8 +565,21 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const urlObj = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = urlObj.pathname;
+  const host = req.headers?.host || 'localhost';
+  const urlObj = new URL(req.url, `http://${host}`);
+  let pathname = urlObj.pathname;
+  if (req.originalUrl) {
+    try {
+      const orig = new URL(req.originalUrl, `http://${host}`);
+      pathname = orig.pathname;
+    } catch {}
+  }
+  if (!pathname.startsWith('/api')) {
+    pathname = `/api${pathname}`;
+  }
+  if (pathname.length > 4 && pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
+  }
 
   // 1. Health & Status Check
   if (pathname === '/api/health' || pathname === '/api') {
@@ -2218,13 +2266,21 @@ Return ONLY a valid JSON object matching the following structure:
 
   // Default 404
   sendJson(res, 404, { error: 'Route not found', path: pathname });
-});
+}
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n======================================================`);
-  console.log(`🚀 Kaarigar Backend API running at http://localhost:${PORT}`);
-  console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`📊 DB Diagnostics: http://localhost:${PORT}/api/db-check`);
-  console.log(`🔑 Gemini API Key: ${GEMINI_API_KEY ? 'Configured & Active' : 'Missing'}`);
-  console.log(`======================================================\n`);
-});
+// HTTP Server instance
+const server = http.createServer(handleRequest);
+
+if (!process.env.VERCEL) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n======================================================`);
+    console.log(`🚀 Kaarigar Backend API running at http://localhost:${PORT}`);
+    console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`📊 DB Diagnostics: http://localhost:${PORT}/api/db-check`);
+    console.log(`🔑 Gemini API Key: ${GEMINI_API_KEY ? 'Configured & Active' : 'Missing'}`);
+    console.log(`======================================================\n`);
+  });
+}
+
+export { handleRequest };
+export default handleRequest;

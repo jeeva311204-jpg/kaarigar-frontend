@@ -12,7 +12,7 @@ import {
 import { salesRecords6Months, categoryDistribution } from './mockData';
 import { analyzeCraftPhoto } from './aiVisionAnalyzer';
 
-const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_BACKEND_URL || '/api';
 const FORCE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true'; // defaults to false (calling live backend)
 
 const apiClient = axios.create({
